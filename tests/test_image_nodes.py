@@ -54,3 +54,23 @@ def test_input_types_use_catalog():
     assert kinds["required"]["model"][0] == ["qwen-image", "flux2-klein"]
     edit_kinds = image_nodes.EcoHashImageEdit.INPUT_TYPES()
     assert edit_kinds["required"]["model"][0] == ["flux2-klein"]
+
+
+def test_generate_raises_on_empty_data():
+    from ecohash.client import EcoHashError
+    node = image_nodes.EcoHashImageGenerate()
+    with patch.object(image_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {"data": []}
+        with pytest.raises(EcoHashError, match="no image data"):
+            node.generate(model="qwen-image", prompt="a fox", size="1024x1024", steps=0, seed=-1)
+
+
+def test_edit_raises_on_empty_data():
+    from ecohash import conversions
+    from ecohash.client import EcoHashError
+    node = image_nodes.EcoHashImageEdit()
+    src = conversions.b64_to_image_tensor(_png_b64())
+    with patch.object(image_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {"data": []}
+        with pytest.raises(EcoHashError, match="no image data"):
+            node.edit(image=src, model="flux2-klein", prompt="sunset sky", size="1024x1024")

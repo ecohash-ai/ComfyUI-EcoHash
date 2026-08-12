@@ -3,6 +3,14 @@ from ecohash import catalog, client, conversions
 SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512"]
 
 
+def _first_b64(out):
+    data = out.get("data") or []
+    if not data or "b64_json" not in data[0]:
+        from ecohash.client import EcoHashError
+        raise EcoHashError("EcoHash returned no image data. The request may have been filtered; try a different prompt.")
+    return data[0]["b64_json"]
+
+
 class EcoHashImageGenerate:
     CATEGORY = "EcoHash"
     FUNCTION = "generate"
@@ -29,7 +37,7 @@ class EcoHashImageGenerate:
         if seed >= 0:
             body["seed"] = seed
         out = client.request_json("POST", "/images/generations", json_body=body)
-        return (conversions.b64_to_image_tensor(out["data"][0]["b64_json"]),)
+        return (conversions.b64_to_image_tensor(_first_b64(out)),)
 
 
 class EcoHashImageEdit:
@@ -56,4 +64,4 @@ class EcoHashImageEdit:
             data={"model": model, "prompt": prompt, "size": size},
             files={"image": ("input.png", png, "image/png")},
         )
-        return (conversions.b64_to_image_tensor(out["data"][0]["b64_json"]),)
+        return (conversions.b64_to_image_tensor(_first_b64(out)),)
