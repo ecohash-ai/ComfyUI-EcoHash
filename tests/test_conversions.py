@@ -4,6 +4,7 @@ import struct
 import wave
 
 import numpy as np
+import pytest
 import torch
 from PIL import Image
 
@@ -44,6 +45,43 @@ def test_wav_to_audio_and_back():
     assert audio["sample_rate"] == 16000
     assert audio["waveform"].shape == (1, 1, 8)
     assert abs(float(audio["waveform"][0, 0, 0]) - 1000 / 32768) < 1e-4
+    wav2 = conversions.audio_to_wav_bytes(audio)
+    audio2 = conversions.wav_bytes_to_audio(wav2)
+    assert torch.allclose(audio["waveform"], audio2["waveform"], atol=1e-3)
+
+
+def test_wav_non_16bit_raises_error():
+    # Build 8-bit WAV (sampwidth=1) - should raise ValueError
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(1)  # 8-bit, not 16-bit
+        w.setframerate(16000)
+        w.writeframes(struct.pack("<" + "B" * 8, *([128] * 8)))
+    wav_8bit = buf.getvalue()
+
+    with pytest.raises(ValueError, match="16-bit"):
+        conversions.wav_bytes_to_audio(wav_8bit)
+
+
+def test_wav_stereo_deinterleave_and_roundtrip():
+    # Build stereo WAV with L=1000, R=-2000, interleaved
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(16000)
+        # 4 frames: (L,R) = (1000,-2000), (1000,-2000), (1000,-2000), (1000,-2000)
+        w.writeframes(struct.pack("<8h", 1000, -2000, 1000, -2000, 1000, -2000, 1000, -2000))
+    wav_stereo = buf.getvalue()
+
+    audio = conversions.wav_bytes_to_audio(wav_stereo)
+    assert audio["waveform"].shape == (1, 2, 4)
+    assert audio["sample_rate"] == 16000
+    assert abs(float(audio["waveform"][0, 0, 0]) - 1000 / 32768) < 1e-4
+    assert abs(float(audio["waveform"][0, 1, 0]) - (-2000 / 32768)) < 1e-4
+
+    # Roundtrip
     wav2 = conversions.audio_to_wav_bytes(audio)
     audio2 = conversions.wav_bytes_to_audio(wav2)
     assert torch.allclose(audio["waveform"], audio2["waveform"], atol=1e-3)
