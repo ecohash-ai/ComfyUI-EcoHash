@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nodes import llm_nodes
+from ecohash_nodes import llm_nodes
 from tests.test_conversions import _png_b64
 
 

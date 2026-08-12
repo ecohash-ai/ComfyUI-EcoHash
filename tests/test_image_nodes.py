@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nodes import image_nodes
+from ecohash_nodes import image_nodes
 from tests.test_conversions import _png_b64  # reuse fixture helper
 
 

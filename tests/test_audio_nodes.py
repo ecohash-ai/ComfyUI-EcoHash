@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nodes import audio_nodes
+from ecohash_nodes import audio_nodes
 from tests.test_conversions import _wav_bytes
 
 
