@@ -6,6 +6,7 @@ FAKE = [
     {"model_id": "qwen-image", "category": "image", "supports_image_edit": False},
     {"model_id": "flux2-klein", "category": "image", "supports_image_edit": True},
     {"model_id": "glm-5.2", "category": "llm", "supports_image_edit": False},
+    {"category": "image"},
 ]
 
 
@@ -40,6 +41,14 @@ def test_model_ids_filters_by_category(monkeypatch):
 def test_model_ids_never_empty(monkeypatch):
     monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: [])
     assert catalog.model_ids("video") == ["(catalog unavailable)"]
+
+
+def test_model_ids_skips_entries_missing_model_id(monkeypatch):
+    _fresh()
+    monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: FAKE)
+    # FAKE includes a malformed {"category": "image"} entry with no "model_id" key;
+    # model_ids() must skip it silently rather than raising KeyError.
+    assert catalog.model_ids("image") == ["qwen-image", "flux2-klein"]
 
 
 def test_models_where(monkeypatch):

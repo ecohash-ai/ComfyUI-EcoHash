@@ -47,7 +47,10 @@ class EcoHashImageEdit:
 
     @classmethod
     def INPUT_TYPES(cls):
-        edit_models = [m["model_id"] for m in catalog.models_where(supports_image_edit=True)]
+        edit_models = [
+            m["model_id"] for m in catalog.models_where(category="image", supports_image_edit=True)
+            if m.get("model_id")
+        ]
         return {
             "required": {
                 "image": ("IMAGE",),

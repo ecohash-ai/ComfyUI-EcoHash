@@ -33,7 +33,7 @@ def get_catalog(force_refresh: bool = False) -> list:
 
 
 def model_ids(*categories: str) -> list:
-    ids = [m["model_id"] for m in get_catalog() if m.get("category") in categories]
+    ids = [m["model_id"] for m in get_catalog() if m.get("category") in categories and m.get("model_id")]
     return ids or ["(catalog unavailable)"]
 
 

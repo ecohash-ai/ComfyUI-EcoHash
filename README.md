@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="96" height="96" alt="EcoHash logo">
+  <img src="https://raw.githubusercontent.com/ecohash-ai/ComfyUI-EcoHash/main/assets/icon.png" width="96" height="96" alt="EcoHash logo">
 </p>
 
 <h1 align="center">ComfyUI-EcoHash</h1>
@@ -80,6 +80,9 @@ the exact list of available models will change as EcoHash adds or retires models
 https://docs.ecohash.com for the current lineup. If the catalog can't be reached, nodes fall back
 to a packaged snapshot so the graph still loads.
 
+ComfyUI caches node outputs — re-queueing an identical graph returns cached results without a new
+API call; change any input (e.g. seed) to force a fresh call.
+
 ## Example workflows
 
 Ready-to-load example workflows (text-to-image, prompt-enhance-then-generate,
@@ -97,8 +100,10 @@ per-model pricing at **https://docs.ecohash.com/billing/plans**.
 
 ## Support
 
-- Slack: **#ecolink-support**
 - Bugs and feature requests: [GitHub Issues](https://github.com/ecohash-ai/ComfyUI-EcoHash/issues)
+  (this repo)
+- Account or billing questions: the EcoLink console support chat —
+  https://docs.ecohash.com/troubleshooting/support
 
 ---
 
@@ -119,4 +124,5 @@ https://docs.ecohash.com。
 
 **价格**：按量计费，详见 https://docs.ecohash.com/billing/plans。
 
-**支持**：Slack `#ecolink-support`，或在 GitHub Issues 提交问题。
+**支持**：在本仓库的 GitHub Issues 提交问题，或通过 EcoLink 控制台的在线支持聊天获取帮助：
+https://docs.ecohash.com/troubleshooting/support。
