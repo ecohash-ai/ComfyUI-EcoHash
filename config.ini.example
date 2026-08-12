@@ -1,0 +1,3 @@
+[ecohash]
+; Copy this file to config.ini and paste your key from https://docs.ecohash.com/getting-started/api-keys
+api_key = eco_YOUR_KEY_HERE
