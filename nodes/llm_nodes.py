@@ -2,6 +2,17 @@ import base64
 
 from ecohash import catalog, client, conversions
 
+
+def _first_message_content(out):
+    choices = out.get("choices") or []
+    message = choices[0].get("message", {}) if choices and isinstance(choices[0], dict) else {}
+    content = message.get("content")
+    if content is None:
+        from ecohash.client import EcoHashError
+        raise EcoHashError("EcoHash returned no completion. The request may have been filtered or the model errored; try again or use a different model.")
+    return content
+
+
 MODE_PRESETS = {
     "chat": "",
     "prompt_enhance": (
@@ -44,7 +55,7 @@ class EcoHashLLM:
             "model": model, "messages": messages,
             "temperature": temperature, "max_tokens": max_tokens,
         })
-        return (out["choices"][0]["message"]["content"],)
+        return (_first_message_content(out),)
 
 
 class EcoHashVLMDescribe:
@@ -77,4 +88,4 @@ class EcoHashVLMDescribe:
             }],
             "max_tokens": max_tokens,
         })
-        return (out["choices"][0]["message"]["content"],)
+        return (_first_message_content(out),)

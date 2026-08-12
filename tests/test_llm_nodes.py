@@ -63,3 +63,25 @@ def test_vlm_describe_sends_data_url():
     url = content[1]["image_url"]["url"]
     assert url.startswith("data:image/png;base64,")
     base64.b64decode(url.split(",", 1)[1])  # must be valid base64
+
+
+def test_llm_raises_on_empty_choices():
+    from ecohash.client import EcoHashError
+    node = llm_nodes.EcoHashLLM()
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {"choices": []}
+        with pytest.raises(EcoHashError, match="no completion"):
+            node.run(model="glm-5.2", mode="chat", text="hello",
+                     system_prompt="", temperature=0.7, max_tokens=1024)
+
+
+def test_vlm_describe_raises_on_empty_choices():
+    from ecohash import conversions
+    from ecohash.client import EcoHashError
+    node = llm_nodes.EcoHashVLMDescribe()
+    img = conversions.b64_to_image_tensor(_png_b64())
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {"choices": []}
+        with pytest.raises(EcoHashError, match="no completion"):
+            node.describe(image=img, model="glm-5.2",
+                          prompt="Describe this image.", max_tokens=512)
