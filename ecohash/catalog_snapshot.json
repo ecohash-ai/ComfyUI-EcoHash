@@ -1,0 +1,1081 @@
+[
+ {
+  "id": 1,
+  "model_id": "llama-3.1-8b-instruct",
+  "display_name": "Llama-3.1-8B-Instruct",
+  "description": "The Meta Llama 3.1 collection of multilingual large language models (LLMs) is a collection of pretrained and instruction tuned generative models in 8B, 70B and 405B sizes (text in/text out). The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.",
+  "category": "llm",
+  "hf_model_id": "nreHieW/Llama-3.1-8B-Instruct",
+  "context_length": 128000,
+  "max_output_length": 8192,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.1,
+  "output_price_per_1m_tokens": 0.1,
+  "cache_read_price_per_1m": 0.05,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 6,
+  "model_id": "kokoro-82m",
+  "display_name": "Kokoro-82M",
+  "description": "Fast, lightweight text-to-speech model",
+  "category": "speech_tts",
+  "hf_model_id": "hexgrad/Kokoro-82M",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 1,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": 100,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "audio"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 9,
+  "model_id": "qwen3-asr-1-7b",
+  "display_name": "Qwen3-ASR-1.7B",
+  "description": "The Qwen3-ASR family includes Qwen3-ASR-1.7B and Qwen3-ASR-0.6B, which support language identification and ASR for 52 languages and dialects. Both leverage large-scale speech training data and the strong audio understanding capability of their foundation model, Qwen3-Omni. Experiments show that the 1.7B version achieves state-of-the-art performance among open-source ASR models and is competitive with the strongest proprietary commercial APIs. ",
+  "category": "speech_stt",
+  "hf_model_id": "Qwen/Qwen3-ASR-1.7B",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.05,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": 1000,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "audio"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 10,
+  "model_id": "gemma-4-31b-it",
+  "display_name": "Gemma-4-31B-IT",
+  "description": "Gemma 4 models are designed to deliver frontier-level performance at each size, targeting deployment scenarios from mobile and edge devices (E2B, E4B) to consumer GPUs and workstations (26B A4B, 31B). They are well-suited for reasoning, agentic workflows, coding, and multimodal understanding.  The models employ a hybrid attention mechanism that interleaves local sliding window attention with full global attention, ensuring the final layer is always global. This hybrid design delivers the processing speed and low memory footprint of a lightweight model without sacrificing the deep awareness required for complex, long-context tasks. To optimize memory for long contexts, global layers feature unified Keys and Values, and apply Proportional RoPE (p-RoPE).",
+  "category": "llm_vision",
+  "hf_model_id": "google/gemma-4-31B-it",
+  "context_length": 32768,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.5,
+  "output_price_per_1m_tokens": 0.5,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 11,
+  "model_id": "qwen3-tts",
+  "display_name": "Qwen3-TTS",
+  "description": "Qwen3-TTS covers 10 major languages (Chinese, English, Japanese, Korean, German, French, Russian, Portuguese, Spanish, and Italian) as well as multiple dialectal voice profiles to meet global application needs. In addition, the models feature strong contextual understanding, enabling adaptive control of tone, speaking rate, and emotional expression based on instructions and text semantics, and they show markedly improved robustness to noisy input text.",
+  "category": "speech_tts",
+  "hf_model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 2,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": 100,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "audio"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 12,
+  "model_id": "jina-embeddings-v3",
+  "display_name": "Jina-Embeddings-V3",
+  "description": "jina-embeddings-v3 is a multilingual multi-task text embedding model designed for a variety of NLP applications. Based on the Jina-XLM-RoBERTa architecture, this model supports Rotary Position Embeddings to handle long input sequences up to 8192 tokens. ",
+  "category": "embedding",
+  "hf_model_id": "jinaai/jina-embeddings-v3",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.02,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 13,
+  "model_id": "jina-embeddings-v4",
+  "display_name": "Jina-Embeddings-V4",
+  "description": "jina-embeddings-v4 is a universal embedding model for multimodal and multilingual retrieval. The model is specially designed for complex document retrieval, including visually rich documents with charts, tables, and illustrations.",
+  "category": "embedding",
+  "hf_model_id": "jinaai/jina-embeddings-v4-vllm-retrieval",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.12,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 14,
+  "model_id": "bge-reranker-v2-m3",
+  "display_name": "BGE-Reranker-V2-M3",
+  "description": "bge-reranker-v2-m3，Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. You can get a relevance score by inputting query and passage to the reranker. And the score can be mapped to a float value in [0,1] by sigmoid function.",
+  "category": "reranker",
+  "hf_model_id": "BAAI/bge-reranker-v2-m3",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.03,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 15,
+  "model_id": "qwen3.5-35b-a3b",
+  "display_name": "Qwen3.5-35B-A3B",
+  "description": "Model Overview Type: Causal Language Model with Vision Encoder Training Stage: Pre-training & Post-training Language Model Number of Parameters: 35B in total and 3B activated Hidden Dimension: 2048 Token Embedding: 248320 (Padded) Number of Layers: 40 Hidden Layout: 10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE)) Gated DeltaNet: Number of Linear Attention Heads: 32 for V and 16 for QK Head Dimension: 128 Gated Attention: Number of Attention Heads: 16 for Q and 2 for KV Head Dimension: 256 Rotary Position Embedding Dimension: 64 Mixture Of Experts Number of Experts: 256 Number of Activated Experts: 8 Routed + 1 Shared Expert Intermediate Dimension: 512 LM Output: 248320 (Padded) MTP: trained with multi-steps Context Length: 262,144 natively and extensible up to 1,010,000 tokens.",
+  "category": "llm_vision",
+  "hf_model_id": "Qwen/Qwen3.5-35B-A3B",
+  "context_length": 32768,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.4,
+  "output_price_per_1m_tokens": 0.4,
+  "cache_read_price_per_1m": 0.2,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 16,
+  "model_id": "z-image-turbo",
+  "display_name": "Z-Image-Turbo",
+  "description": "Z-Image is a powerful and highly efficient image generation model family with 6B parameters. Currently there are four variants:  🚀 Z-Image-Turbo – A distilled version of Z-Image that matches or exceeds leading competitors with only 8 NFEs (Number of Function Evaluations). It offers ⚡️sub-second inference latency⚡️ on enterprise-grade H800 GPUs and fits comfortably within 16G VRAM consumer devices. It excels in photorealistic image generation, bilingual text rendering (English & Chinese), and robust instruction adherence.  🎨 Z-Image – The foundation model behind Z-Image-Turbo. Z-Image focuses on high-quality generation, rich aesthetics, strong diversity, and controllability, well-suited for creative generation, fine-tuning, and downstream development. It supports a wide range of artistic styles, effective negative prompting, and high diversity across identities, poses, compositions, and layouts.  🧱 Z-Image-Omni-Base – The versatile foundation model capable of both generation and editing tasks. By releasing this checkpoint, we aim to unlock the full potential for community-driven fine-tuning and custom development, providing the most \"raw\" and diverse starting point for the open-source community.  ✍️ Z-Image-Edit – A variant fine-tuned on Z-Image specifically for image editing tasks. It supports creative image-to-image generation with impressive instruction-following capabilities, allowing for precise edits based on natural language prompts.",
+  "category": "image",
+  "hf_model_id": "Tongyi-MAI/Z-Image-Turbo",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": 8,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 10,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": 1000,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "image"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 17,
+  "model_id": "qwen2.5-7b-instruct",
+  "display_name": "Qwen2.5-7B-Instruct",
+  "description": "Qwen2.5 is the latest series of Qwen large language models. For Qwen2.5, we release a number of base language models and instruction-tuned language models ranging from 0.5 to 72 billion parameters. Qwen2.5 brings the following improvements upon Qwen2:  Significantly more knowledge and has greatly improved capabilities in coding and mathematics, thanks to our specialized expert models in these domains. Significant improvements in instruction following, generating long texts (over 8K tokens), understanding structured data (e.g, tables), and generating structured outputs especially JSON. More resilient to the diversity of system prompts, enhancing role-play implementation and condition-setting for chatbots. Long-context Support up to 128K tokens and can generate up to 8K tokens. Multilingual support for over 29 languages, including Chinese, English, French, Spanish, Portuguese, German, Italian, Russian, Japanese, Korean, Vietnamese, Thai, Arabic, and more.",
+  "category": "llm",
+  "hf_model_id": "Qwen/Qwen2.5-7B-Instruct",
+  "context_length": 16384,
+  "max_output_length": 8192,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.2,
+  "output_price_per_1m_tokens": 0.2,
+  "cache_read_price_per_1m": 0.1,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 19,
+  "model_id": "ecolink-video-gen-2.0",
+  "display_name": "Seedance 2.0",
+  "description": null,
+  "category": "video",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "upstream_usage",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 8.46,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": 100000,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image",
+   "audio",
+   "video"
+  ],
+  "output_modalities": [
+   "video"
+  ],
+  "aliases": [
+   "seedance-2.0"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 20,
+  "model_id": "Qwen3-235B-A22B",
+  "display_name": "Qwen3-235B-A22B",
+  "description": "Qwen3-235B-A22B has the following features:  Type: Causal Language Models Training Stage: Pretraining & Post-training Number of Parameters: 235B in total and 22B activated Number of Paramaters (Non-Embedding): 234B Number of Layers: 94 Number of Attention Heads (GQA): 64 for Q and 4 for KV Number of Experts: 128 Number of Activated Experts: 8 Context Length: 32,768 natively and 131,072 tokens with YaRN.",
+  "category": "llm",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.3333,
+  "output_price_per_1m_tokens": 1.3333,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 21,
+  "model_id": "MiniMax-M2.7",
+  "display_name": "MiniMax-M2.7",
+  "description": null,
+  "category": "llm",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.35,
+  "output_price_per_1m_tokens": 1.4,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 24,
+  "model_id": "GLM-5-Turbo",
+  "display_name": "GLM-5-Turbo",
+  "description": null,
+  "category": "llm",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.8333,
+  "output_price_per_1m_tokens": 3.6667,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 26,
+  "model_id": "Kimi-K2.6",
+  "display_name": "Kimi-K2.6",
+  "description": "Kimi K2.6 is an open-source, native multimodal agentic model that advances practical capabilities in long-horizon coding, coding-driven design, proactive autonomous execution, and swarm-based task orchestration.  Key Features Long-Horizon Coding: K2.6 achieves significant improvements on complex, end-to-end coding tasks, generalizing robustly across programming languages (Rust, Go, Python) and domains spanning front-end, DevOps, and performance optimization. Coding-Driven Design: K2.6 is capable of transforming simple prompts and visual inputs into production-ready interfaces and lightweight full-stack workflows, generating structured layouts, interactive elements, and rich animations with deliberate aesthetic precision. Elevated Agent Swarm: Scaling horizontally to 300 sub-agents executing 4,000 coordinated steps, K2.6 can dynamically decompose tasks into parallel, domain-specialized subtasks, delivering end-to-end outputs from documents to websites to spreadsheets in a single autonomous run. Proactive & Open Orchestration: For autonomous tasks, K2.6 demonstrates strong performance in powering persistent, 24/7 background agents that proactively manage schedules, execute code, and orchestrate cross-platform operations without human oversight.",
+  "category": "llm_vision",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 1.0833,
+  "output_price_per_1m_tokens": 4.5,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 27,
+  "model_id": "DeepSeek-V4-Flash",
+  "display_name": "DeepSeek-V4-Flash",
+  "description": "DeepSeek-V4-Flash with 284B parameters (13B activated) — both supporting a context length of one million tokens.",
+  "category": "llm",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.1626,
+  "output_price_per_1m_tokens": 0.3251,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 30,
+  "model_id": "qwen3-embedding-8b",
+  "display_name": "qwen3-embedding-8b",
+  "description": "Qwen3-Embedding-8B has the following features:  Model Type: Text Embedding Supported Languages: 100+ Languages Number of Paramaters: 8B Context Length: 32k Embedding Dimension: Up to 4096, supports user-defined output dimensions ranging from 32 to 4096",
+  "category": "embedding",
+  "hf_model_id": "Qwen/Qwen3-Embedding-8B",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.12,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 31,
+  "model_id": "qwen3-embedding-4b",
+  "display_name": "qwen3-embedding-4b",
+  "description": "Qwen3-Embedding-4B has the following features:  Model Type: Text Embedding Supported Languages: 100+ Languages Number of Paramaters: 4B Context Length: 32k Embedding Dimension: Up to 2560, supports user-defined output dimensions ranging from 32 to 2560",
+  "category": "embedding",
+  "hf_model_id": "Qwen/Qwen3-Embedding-4B",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.12,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 32,
+  "model_id": "qwen3-embedding-0.6b",
+  "display_name": "qwen3-embedding-0.6b",
+  "description": "Qwen3-Embedding-0.6B has the following features:  Model Type: Text Embedding Supported Languages: 100+ Languages Number of Parameters: 0.6B Context Length: 32k Embedding Dimension: Up to 1024, supports user-defined output dimensions ranging from 32 to 1024",
+  "category": "embedding",
+  "hf_model_id": "Qwen/Qwen3-Embedding-0.6B",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.12,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 33,
+  "model_id": "qwen3-omni-30b-a3b-instruct",
+  "display_name": "qwen3-omni-30b-a3b-instruct",
+  "description": null,
+  "category": "llm_vision",
+  "hf_model_id": "Qwen/Qwen3-Omni-30B-A3B-Instruct",
+  "context_length": 32768,
+  "max_output_length": 8192,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.4,
+  "output_price_per_1m_tokens": 0.8,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": 100,
+  "input_modalities": [
+   "text",
+   "image",
+   "audio",
+   "video"
+  ],
+  "output_modalities": [
+   "text",
+   "audio"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 35,
+  "model_id": "fun-asr-nano",
+  "display_name": "Fun-ASR-Nano",
+  "description": "LLM-Powered Speech Recognition — 31 Languages, Dialects & Accents  End-to-end ASR trained on tens of millions of hours of data. Supports Chinese (+ dialects), English, Japanese, Korean, French, German, Spanish, and 24 more languages.",
+  "category": "speech_stt",
+  "hf_model_id": "FunAudioLLM/Fun-ASR-Nano-2512",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.05,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": 1000,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "audio"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 36,
+  "model_id": "GLM-5.2",
+  "display_name": "GLM-5.2",
+  "description": "GLM-5.2 marks a substantial leap in long-horizon task capability over its predecessor GLM-5.1 and, for the first time, delivers that capability on a solid 1M-token context. GLM-5.2's new capabilities include:  Solid 1M Context: A solid 1M-token context that stably sustains long-horizon work Advanced Coding with Flexible Effort: Stronger coding capabilities with multiple thinking effort levels to balance performance and latency Improved Architecture: We propose IndexShare, which reuses the same indexer across every four sparse attention layers, reducing per-token FLOPs by 2.9× at a 1M context length. We also improve GLM-5.2’s MTP layer for speculative decoding, increasing the acceptance length by up to 20% Pure Open: An MIT open-source license — no regional limits, technical access without borders",
+  "category": "llm",
+  "hf_model_id": null,
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": true,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 1,
+  "output_price_per_1m_tokens": 4,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 37,
+  "model_id": "qwen3-vl-8b-instruct",
+  "display_name": "qwen3-vl-8b-instruct",
+  "description": "Meet Qwen3-VL — the most powerful vision-language model in the Qwen series to date.  This generation delivers comprehensive upgrades across the board: superior text understanding & generation, deeper visual perception & reasoning, extended context length, enhanced spatial and video dynamics comprehension, and stronger agent interaction capabilities.  Available in Dense and MoE architectures that scale from edge to cloud, with Instruct and reasoning‑enhanced Thinking editions for flexible, on‑demand deployment.  Key Enhancements: Visual Agent: Operates PC/mobile GUIs—recognizes elements, understands functions, invokes tools, completes tasks.  Visual Coding Boost: Generates Draw.io/HTML/CSS/JS from images/videos.  Advanced Spatial Perception: Judges object positions, viewpoints, and occlusions; provides stronger 2D grounding and enables 3D grounding for spatial reasoning and embodied AI.  Long Context & Video Understanding: Native 256K context, expandable to 1M; handles books and hours-long video with full recall and second-level indexing.  Enhanced Multimodal Reasoning: Excels in STEM/Math—causal analysis and logical, evidence-based answers.  Upgraded Visual Recognition: Broader, higher-quality pretraining is able to “recognize everything”—celebrities, anime, products, landmarks, flora/fauna, etc.  Expanded OCR: Supports 32 languages (up from 19); robust in low light, blur, and tilt; better with rare/ancient characters and jargon; improved long-document structure parsing.  Text Understanding on par with pure LLMs: Seamless text–vision fusion for lossless, unified comprehension.",
+  "category": "llm_vision",
+  "hf_model_id": "Qwen/Qwen3-VL-8B-Instruct",
+  "context_length": 32768,
+  "max_output_length": 8192,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.15,
+  "output_price_per_1m_tokens": 0.5,
+  "cache_read_price_per_1m": 0.08,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 39,
+  "model_id": "qwen3-coder-30b-a3b-instruct",
+  "display_name": "qwen3-coder-30b-a3b-instruct",
+  "description": "Qwen3-Coder-30B-A3B-Instruct has the following features:  Type: Causal Language Models Training Stage: Pretraining & Post-training Number of Parameters: 30.5B in total and 3.3B activated Number of Layers: 48 Number of Attention Heads (GQA): 32 for Q and 4 for KV Number of Experts: 128 Number of Activated Experts: 8 Context Length: 262,144 natively.",
+  "category": "llm",
+  "hf_model_id": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+  "context_length": 32768,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.1,
+  "output_price_per_1m_tokens": 0.3,
+  "cache_read_price_per_1m": 0.05,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 40,
+  "model_id": "gpt-oss-20b",
+  "display_name": "gpt-oss-20b",
+  "description": "gpt-oss-20b, OpenAI’s open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases. for lower latency, and local or specialized use cases (21B parameters with 3.6B active parameters)",
+  "category": "llm",
+  "hf_model_id": "openai/gpt-oss-20b",
+  "context_length": 128000,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.2,
+  "output_price_per_1m_tokens": 0.28,
+  "cache_read_price_per_1m": 0.1,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 41,
+  "model_id": "viitor-voice-nar",
+  "display_name": "ViiTorVoice-NAR",
+  "description": "ViiTorVoice-NAR is a non-autoregressive speech generation model for voice cloning, local speech editing, and emotion / paralinguistic speech control. ",
+  "category": "speech_clone",
+  "hf_model_id": "ZzWater/ViiTorVoice-NAR",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.1,
+  "output_price_per_1m_tokens": 0.5,
+  "cache_read_price_per_1m": 0.05,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": 100,
+  "input_modalities": [
+   "text",
+   "audio"
+  ],
+  "output_modalities": [
+   "audio"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 42,
+  "model_id": "whisper-large-v3-turbo",
+  "display_name": "Whisper-Large-V3-Turbo",
+  "description": "Whisper large-v3-turbo is a finetuned version of a pruned Whisper large-v3. In other words, it's the exact same model, except that the number of decoding layers have reduced from 32 to 4. As a result, the model is way faster, at the expense of a minor quality degradation. ",
+  "category": "speech_stt",
+  "hf_model_id": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.1,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": 1000,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "audio"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 43,
+  "model_id": "chatterbox",
+  "display_name": "Chatterbox",
+  "description": "Chatterbox Multilingual V3 is the latest general-purpose multilingual TTS model in the Chatterbox family. It keeps the same 0.5B model size while improving speaker similarity, reducing hallucinations, and producing more natural, conversational speech across languages.  V3 is designed for broad language coverage like V2, but with stronger stability and more expressive generation. It is the recommended multilingual model for users who want one voice cloning model that works across many languages. ",
+  "category": "speech_tts",
+  "hf_model_id": "ResembleAI/chatterbox",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 2,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": 100,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "audio"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 44,
+  "model_id": "flux2-klein",
+  "display_name": "FLUX.2 Klein",
+  "description": "The FLUX.2 [klein] model family are our fastest image models to date. FLUX.2 [klein] unifies generation and editing in a single compact architecture, delivering state-of-the-art quality with end-to-end inference in as low as under a second. Built for applications that require real-time image generation without sacrificing quality.  FLUX.2 [klein] 9B is a 9 billion parameter rectified flow transformer capable of generating images from text descriptions and supports multi-reference editing capabilities.  Our flagship small model. Defines the Pareto frontier for quality vs. latency across text-to-image, single-reference editing, and multi-reference generation. Matches or exceeds models 5x its size—in under half a second. Built on a 9B flow model with 8B Qwen3 text embedder, step-distilled to 4 inference steps.",
+  "category": "image",
+  "hf_model_id": "black-forest-labs/FLUX.2-klein-4B",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": true,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 20,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": 1000,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "image"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 45,
+  "model_id": "qwen-image",
+  "display_name": "Qwen-Image",
+  "description": "Qwen-Image, an image generation foundation model in the Qwen series that achieves significant advances in complex text rendering and precise image editing. Experiments show strong general capabilities in both image generation and editing, with exceptional performance in text rendering, especially for Chinese.",
+  "category": "image",
+  "hf_model_id": "Qwen/Qwen-Image-2512",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": 50,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 30,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": 1000,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "image"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 46,
+  "model_id": "qwen3.5-27b",
+  "display_name": "Qwen3.5-27B",
+  "description": "Qwen3.5 27B dense vision-language model. Text + image input, 32K context, FP8. Supports tool/function calling and reasoning.",
+  "category": "llm_vision",
+  "hf_model_id": "Qwen/Qwen3.5-27B-FP8",
+  "context_length": 32768,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.3,
+  "output_price_per_1m_tokens": 0.6,
+  "cache_read_price_per_1m": 0.15,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 47,
+  "model_id": "qwen3.6-27b",
+  "display_name": "Qwen3.6-27B",
+  "description": "Qwen3.6 27B dense vision-language model. Text + image input, 32K context, FP8. Supports tool/function calling and reasoning.",
+  "category": "llm_vision",
+  "hf_model_id": "Qwen/Qwen3.6-27B-FP8",
+  "context_length": 32768,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.3,
+  "output_price_per_1m_tokens": 0.6,
+  "cache_read_price_per_1m": 0.15,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 48,
+  "model_id": "qwen3.6-35b-a3b",
+  "display_name": "Qwen3.6-35B-A3B",
+  "description": "Qwen3.6 35B-A3B MoE vision-language model (35B total / 3B active). Text + image input, 32K context, FP8. Supports tool/function calling and reasoning.",
+  "category": "llm_vision",
+  "hf_model_id": "Qwen/Qwen3.6-35B-A3B-FP8",
+  "context_length": 32768,
+  "max_output_length": 16384,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": true,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 0.4,
+  "output_price_per_1m_tokens": 0.4,
+  "cache_read_price_per_1m": 0.2,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image"
+  ],
+  "output_modalities": [
+   "text"
+  ],
+  "status": "active"
+ },
+ {
+  "id": 49,
+  "model_id": "wan22-t2v-a14b",
+  "display_name": "Wan2.2-T2V-A14B",
+  "description": null,
+  "category": "video",
+  "hf_model_id": "Wan-AI/Wan2.2-T2V-A14B-Diffusers",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "per_output_second",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 1,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": 150000,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text"
+  ],
+  "output_modalities": [
+   "video"
+  ],
+  "min_price_per_second": 0.05,
+  "status": "active"
+ },
+ {
+  "id": 50,
+  "model_id": "wan22-s2v-14b",
+  "display_name": "Wan2.2-S2V-14B (Presenter / Talking Head)",
+  "description": "Speech-to-video: animates a portrait to speak driving audio.",
+  "category": "video",
+  "hf_model_id": "Wan-AI/Wan2.2-S2V-14B",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "per_output_second",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 1,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": 150000,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": [
+   "text",
+   "image",
+   "audio"
+  ],
+  "output_modalities": [
+   "video"
+  ],
+  "min_price_per_second": 0.05,
+  "status": "active"
+ },
+ {
+  "id": 51,
+  "model_id": "stable-audio-open",
+  "display_name": "Stable Audio Open 1.0",
+  "description": "Text to audio â€” music beds and sound effects, 44.1kHz stereo, up to 47 seconds.",
+  "category": "audio_music",
+  "hf_model_id": "stabilityai/stable-audio-open-1.0",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": null,
+  "output_price_per_1m_tokens": 8,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": null,
+  "audio_output_tokens_per_sec": 25,
+  "input_modalities": null,
+  "output_modalities": null,
+  "status": "active"
+ },
+ {
+  "id": 52,
+  "model_id": "pyannote-diarization-3-1",
+  "display_name": "pyannote Speaker Diarization 3.1",
+  "description": "Speaker diarization â€” detects who spoke when. Returns speaker turns with start/end times; pair with a transcription model for labelled transcripts.",
+  "category": "speech_diarization",
+  "hf_model_id": "pyannote/speaker-diarization-3.1",
+  "context_length": null,
+  "max_output_length": null,
+  "coding_plan_enabled": false,
+  "default_image_steps": null,
+  "supports_image_edit": false,
+  "agent_capable": false,
+  "billing_meter": "fixed_per_output",
+  "input_price_per_1m_tokens": 4,
+  "output_price_per_1m_tokens": null,
+  "cache_read_price_per_1m": null,
+  "image_tokens_per_image": null,
+  "audio_input_tokens_per_sec": 25,
+  "audio_output_tokens_per_sec": null,
+  "input_modalities": null,
+  "output_modalities": null,
+  "status": "active"
+ }
+]
