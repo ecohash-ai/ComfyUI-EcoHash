@@ -56,14 +56,24 @@ class EcoHashImageEdit:
                 "image": ("IMAGE",),
                 "model": (edit_models or ["(catalog unavailable)"],),
                 "prompt": ("STRING", {"multiline": True, "default": ""}),
-                "size": (["auto"] + SIZES, {"default": "auto", "tooltip": "auto = keep source dimensions"}),
+                "size": (["auto"] + SIZES, {
+                    "default": "auto",
+                    "tooltip": "auto = match the source image (rounded down to a multiple of 16)",
+                }),
             }
         }
 
     def edit(self, image, model, prompt, size):
         png = conversions.image_tensor_to_png_bytes(image)
         data = {"model": model, "prompt": prompt}
-        if size != "auto":
+        if size == "auto":
+            # Omitting size does NOT preserve the source dimensions -- the API falls back
+            # to 1024x1024 (measured: 512x512 and 768x768 sources both came back
+            # 1024x1024). Send the source dimensions explicitly so "auto" means what it
+            # says; the API floors each side to a multiple of 16 (900 -> 896, 1023 -> 1008).
+            height, width = image.shape[1], image.shape[2]
+            data["size"] = f"{width}x{height}"
+        else:
             data["size"] = size
         out = client.request_json(
             "POST", "/images/edits",

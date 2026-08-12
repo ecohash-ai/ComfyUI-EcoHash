@@ -96,3 +96,23 @@ def test_request_json_network_failure(monkeypatch):
         mock_req.side_effect = requests.exceptions.ConnectionError("boom")
         with pytest.raises(client.EcoHashError, match="Cannot reach EcoHash API"):
             client.request_json("GET", "/models")
+
+
+def test_non_json_success_body_becomes_ecohash_error(monkeypatch):
+    """A 2xx whose body isn't JSON must not leak requests' JSONDecodeError."""
+    import pytest
+    import requests
+    from ecohash import client
+
+    class FakeResp:
+        status_code = 200
+        text = ""
+        content = b""
+
+        def json(self):
+            raise requests.exceptions.JSONDecodeError("Expecting value", "", 0)
+
+    monkeypatch.setenv("ECOHASH_API_KEY", "eco_test")
+    monkeypatch.setattr(client.requests, "request", lambda *a, **k: FakeResp())
+    with pytest.raises(client.EcoHashError, match="not valid JSON"):
+        client.request_json("POST", "/chat/completions", json_body={})

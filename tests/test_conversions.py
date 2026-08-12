@@ -85,3 +85,28 @@ def test_wav_stereo_deinterleave_and_roundtrip():
     wav2 = conversions.audio_to_wav_bytes(audio)
     audio2 = conversions.wav_bytes_to_audio(wav2)
     assert torch.allclose(audio["waveform"], audio2["waveform"], atol=1e-3)
+
+
+def test_image_batch_is_rejected_not_silently_truncated():
+    """A batch used to be narrowed to frame 0, dropping the rest with no warning."""
+    import pytest
+    import torch
+    from ecohash import conversions
+    with pytest.raises(ValueError, match="batch of 4"):
+        conversions.image_tensor_to_png_bytes(torch.rand(4, 8, 8, 3))
+
+
+def test_single_image_still_accepted():
+    import torch
+    from ecohash import conversions
+    png = conversions.image_tensor_to_png_bytes(torch.rand(1, 8, 8, 3))
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_audio_batch_is_rejected_not_silently_truncated():
+    import pytest
+    import torch
+    from ecohash import conversions
+    audio = {"waveform": torch.zeros(2, 1, 100), "sample_rate": 24000}
+    with pytest.raises(ValueError, match="batch of 2"):
+        conversions.audio_to_wav_bytes(audio)

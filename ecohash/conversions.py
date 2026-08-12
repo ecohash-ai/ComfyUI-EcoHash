@@ -16,6 +16,15 @@ def b64_to_image_tensor(b64: str) -> torch.Tensor:
 
 
 def image_tensor_to_png_bytes(image: torch.Tensor) -> bytes:
+    # ComfyUI IMAGE is [B, H, W, C]. These nodes send exactly one image per API call, so a
+    # batch would have been silently narrowed to its first frame and the rest dropped with
+    # no output and no warning. Fail loudly instead.
+    if image.shape[0] != 1:
+        raise ValueError(
+            f"Expected a single image, got a batch of {image.shape[0]}. EcoHash image nodes "
+            f"process one image per request; split the batch upstream (for example with a "
+            f"'Image From Batch' node) and wire one image in."
+        )
     arr = (image[0].cpu().numpy().clip(0.0, 1.0) * 255.0).round().astype(np.uint8)
     buf = io.BytesIO()
     Image.fromarray(arr).save(buf, format="PNG")
@@ -34,6 +43,12 @@ def wav_bytes_to_audio(wav_bytes: bytes) -> dict:
 
 
 def audio_to_wav_bytes(audio: dict) -> bytes:
+    # ComfyUI AUDIO waveform is [B, C, T]; same reasoning as image_tensor_to_png_bytes.
+    if audio["waveform"].shape[0] != 1:
+        raise ValueError(
+            f"Expected a single audio clip, got a batch of {audio['waveform'].shape[0]}. "
+            f"EcoHash audio nodes process one clip per request."
+        )
     waveform = audio["waveform"][0]  # [C, T]
     arr = (waveform.cpu().numpy().clip(-1.0, 1.0) * 32767.0).astype(np.int16)
     buf = io.BytesIO()

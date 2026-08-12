@@ -77,14 +77,55 @@ def test_edit_raises_on_empty_data():
             node.edit(image=src, model="flux2-klein", prompt="sunset sky", size="1024x1024")
 
 
-def test_edit_auto_size_omits_param():
+def test_edit_auto_size_sends_source_dimensions():
+    """This previously asserted that `auto` omits `size`. That was the bug: the API
+    answers a missing size with 1024x1024 regardless of the source, so `auto` silently
+    resized. `auto` now sends the source dimensions."""
     from ecohash import conversions
     node = image_nodes.EcoHashImageEdit()
     src = conversions.b64_to_image_tensor(_png_b64())
+    height, width = src.shape[1], src.shape[2]
     with patch.object(image_nodes.client, "request_json") as mock_req:
         mock_req.return_value = {"data": [{"b64_json": _png_b64()}]}
         (img,) = node.edit(image=src, model="flux2-klein", prompt="sunset sky", size="auto")
     kwargs = mock_req.call_args.kwargs
-    assert "size" not in kwargs["data"]
+    assert kwargs["data"]["size"] == f"{width}x{height}"
     assert kwargs["data"]["model"] == "flux2-klein"
     assert kwargs["data"]["prompt"] == "sunset sky"
+
+
+def test_edit_auto_sends_source_dimensions(monkeypatch):
+    """`auto` used to omit size, which the API answers with 1024x1024 regardless of the
+    source (measured). It must send the real source dimensions instead."""
+    from unittest.mock import patch
+    import torch
+    from ecohash_nodes import image_nodes
+    from tests.test_conversions import _png_b64
+
+    monkeypatch.setattr(
+        image_nodes.catalog, "models_where",
+        lambda **kw: [{"model_id": "flux2-klein"}],
+    )
+    node = image_nodes.EcoHashImageEdit()
+    image = torch.rand(1, 768, 512, 3)  # H=768, W=512
+    with patch.object(image_nodes.client, "request_json") as req:
+        req.return_value = {"data": [{"b64_json": _png_b64()}]}
+        node.edit(image=image, model="flux2-klein", prompt="p", size="auto")
+    assert req.call_args.kwargs["data"]["size"] == "512x768"  # WxH, not HxW
+
+
+def test_edit_explicit_size_is_passed_through(monkeypatch):
+    from unittest.mock import patch
+    import torch
+    from ecohash_nodes import image_nodes
+    from tests.test_conversions import _png_b64
+
+    monkeypatch.setattr(
+        image_nodes.catalog, "models_where",
+        lambda **kw: [{"model_id": "flux2-klein"}],
+    )
+    node = image_nodes.EcoHashImageEdit()
+    with patch.object(image_nodes.client, "request_json") as req:
+        req.return_value = {"data": [{"b64_json": _png_b64()}]}
+        node.edit(image=torch.rand(1, 64, 64, 3), model="flux2-klein", prompt="p", size="768x768")
+    assert req.call_args.kwargs["data"]["size"] == "768x768"

@@ -75,7 +75,19 @@ def _request(method: str, path: str, *, json_body=None, data=None, files=None, t
 
 
 def request_json(method: str, path: str, *, json_body=None, data=None, files=None, timeout=180) -> dict:
-    return _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout).json()
+    resp = _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout)
+    try:
+        return resp.json()
+    except ValueError as exc:
+        # A 2xx with a body that isn't JSON does happen (observed once: an empty body on
+        # /chat/completions, which succeeded on retry). Decoding outside this guard would
+        # surface a bare requests.exceptions.JSONDecodeError traceback in ComfyUI instead
+        # of an actionable message.
+        raise EcoHashError(
+            f"EcoHash returned a {resp.status_code} response that is not valid JSON "
+            f"({len(resp.content)} bytes). This is usually transient — retry. "
+            f"Body starts: {resp.text[:200]!r}"
+        ) from exc
 
 
 def request_bytes(method: str, path: str, *, json_body, timeout=180) -> bytes:
