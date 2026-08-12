@@ -21,10 +21,13 @@ def get_catalog(force_refresh: bool = False) -> list:
         resp = requests.get(CATALOG_URL, params={"status": "active"}, timeout=5)
         resp.raise_for_status()
         data = resp.json()
-    except Exception:
+    except (requests.RequestException, OSError, ValueError):
         if _CACHE["data"] is not None:
             return _CACHE["data"]
-        data = json.loads(SNAPSHOT_PATH.read_text())
+        try:
+            data = json.loads(SNAPSHOT_PATH.read_text())
+        except Exception:
+            return []
     _CACHE.update({"data": data, "ts": now})
     return data
 
