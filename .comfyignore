@@ -1,0 +1,15 @@
+# Files excluded from the package uploaded to the Comfy Registry.
+# Same syntax as .gitignore. Users installing the node do not need any of this;
+# everything here stays in the GitHub repo.
+#
+# Kept deliberately: example_workflows/ (users load these), assets/ (registry icon),
+# config.ini.example (how users supply their API key), README.md, LICENSE.
+
+tests/
+scripts/
+docs/
+.github/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
