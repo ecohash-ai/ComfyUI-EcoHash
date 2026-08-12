@@ -46,6 +46,7 @@ def test_edit_sends_multipart():
     assert mock_req.call_args.args == ("POST", "/images/edits")
     kwargs = mock_req.call_args.kwargs
     assert kwargs["data"]["model"] == "flux2-klein"
+    assert kwargs["data"]["size"] == "1024x1024"
     assert kwargs["files"]["image"][0] == "input.png"
 
 
@@ -74,3 +75,16 @@ def test_edit_raises_on_empty_data():
         mock_req.return_value = {"data": []}
         with pytest.raises(EcoHashError, match="no image data"):
             node.edit(image=src, model="flux2-klein", prompt="sunset sky", size="1024x1024")
+
+
+def test_edit_auto_size_omits_param():
+    from ecohash import conversions
+    node = image_nodes.EcoHashImageEdit()
+    src = conversions.b64_to_image_tensor(_png_b64())
+    with patch.object(image_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {"data": [{"b64_json": _png_b64()}]}
+        (img,) = node.edit(image=src, model="flux2-klein", prompt="sunset sky", size="auto")
+    kwargs = mock_req.call_args.kwargs
+    assert "size" not in kwargs["data"]
+    assert kwargs["data"]["model"] == "flux2-klein"
+    assert kwargs["data"]["prompt"] == "sunset sky"

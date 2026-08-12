@@ -53,15 +53,18 @@ class EcoHashImageEdit:
                 "image": ("IMAGE",),
                 "model": (edit_models or ["(catalog unavailable)"],),
                 "prompt": ("STRING", {"multiline": True, "default": ""}),
-                "size": (SIZES, {"default": "1024x1024"}),
+                "size": (["auto"] + SIZES, {"default": "auto", "tooltip": "auto = keep source dimensions"}),
             }
         }
 
     def edit(self, image, model, prompt, size):
         png = conversions.image_tensor_to_png_bytes(image)
+        data = {"model": model, "prompt": prompt}
+        if size != "auto":
+            data["size"] = size
         out = client.request_json(
             "POST", "/images/edits",
-            data={"model": model, "prompt": prompt, "size": size},
+            data=data,
             files={"image": ("input.png", png, "image/png")},
         )
         return (conversions.b64_to_image_tensor(_first_b64(out)),)
