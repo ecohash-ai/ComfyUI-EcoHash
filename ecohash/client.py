@@ -38,7 +38,12 @@ def load_api_key() -> str:
         return key
     if CONFIG_PATH.exists():
         parser = configparser.ConfigParser()
-        parser.read(CONFIG_PATH)
+        try:
+            parser.read(CONFIG_PATH)
+        except configparser.Error as exc:
+            raise EcoHashAuthError(
+                f"Malformed config file at {CONFIG_PATH}: {exc}\n\n{_KEY_HELP}"
+            ) from exc
         key = parser.get("ecohash", "api_key", fallback="").strip()
         if key and key != "eco_YOUR_KEY_HERE":
             return key

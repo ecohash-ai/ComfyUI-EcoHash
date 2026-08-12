@@ -2,6 +2,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from ecohash import client
 
@@ -61,3 +62,37 @@ def test_request_bytes_returns_content(monkeypatch):
         mock_req.return_value = _mock_response(200, None, content=b"RIFFwav")
         out = client.request_bytes("POST", "/audio/speech", json_body={})
     assert out == b"RIFFwav"
+
+
+def test_load_api_key_malformed_config(monkeypatch, tmp_path):
+    monkeypatch.delenv("ECOHASH_API_KEY", raising=False)
+    cfg = tmp_path / "config.ini"
+    cfg.write_text("invalid line without section header\n[ecohash]\napi_key = key\n")
+    monkeypatch.setattr(client, "CONFIG_PATH", cfg)
+    with pytest.raises(client.EcoHashAuthError, match="config"):
+        client.load_api_key()
+
+
+def test_load_api_key_empty_env_falls_through_to_config(monkeypatch, tmp_path):
+    monkeypatch.setenv("ECOHASH_API_KEY", "")
+    cfg = tmp_path / "config.ini"
+    cfg.write_text("[ecohash]\napi_key = eco_cfg_key\n")
+    monkeypatch.setattr(client, "CONFIG_PATH", cfg)
+    assert client.load_api_key() == "eco_cfg_key"
+
+
+def test_load_api_key_rejects_placeholder(monkeypatch, tmp_path):
+    monkeypatch.delenv("ECOHASH_API_KEY", raising=False)
+    cfg = tmp_path / "config.ini"
+    cfg.write_text("[ecohash]\napi_key = eco_YOUR_KEY_HERE\n")
+    monkeypatch.setattr(client, "CONFIG_PATH", cfg)
+    with pytest.raises(client.EcoHashAuthError, match="API key"):
+        client.load_api_key()
+
+
+def test_request_json_network_failure(monkeypatch):
+    monkeypatch.setenv("ECOHASH_API_KEY", "eco_k")
+    with patch.object(client.requests, "request") as mock_req:
+        mock_req.side_effect = requests.exceptions.ConnectionError("boom")
+        with pytest.raises(client.EcoHashError, match="Cannot reach EcoHash API"):
+            client.request_json("GET", "/models")
