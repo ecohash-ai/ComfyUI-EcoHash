@@ -4,6 +4,11 @@ on:
     branches: [main]
     paths: ["pyproject.toml"]
 permissions:
+  # Declaring any permissions block drops every default, so contents: read has to be
+  # listed explicitly or actions/checkout cannot fetch this repo. A public repo happens
+  # to survive without it (checkout falls back to an anonymous clone); a private one
+  # fails with a misleading "Repository not found".
+  contents: read
   issues: write
 jobs:
   publish-node:
