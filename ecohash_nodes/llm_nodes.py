@@ -5,11 +5,23 @@ from ecohash import catalog, client, conversions
 
 def _first_message_content(out):
     choices = out.get("choices") or []
-    message = choices[0].get("message", {}) if choices and isinstance(choices[0], dict) else {}
+    choice = choices[0] if choices and isinstance(choices[0], dict) else {}
+    message = choice.get("message") or {}
     content = message.get("content")
-    if content is None:
+    # Reasoning models (GLM-*, Qwen3.5/3.6-*) can spend the whole max_tokens budget on
+    # reasoning and return content as "" or null with finish_reason "length". Treat blank
+    # the same as missing: returning "" here silently feeds an empty prompt downstream.
+    if content is None or not content.strip():
         from ecohash.client import EcoHashError
-        raise EcoHashError("EcoHash returned no completion. The request may have been filtered or the model errored; try again or use a different model.")
+        hint = ""
+        if choice.get("finish_reason") == "length":
+            hint = (" The token budget ran out before any answer text was produced — this "
+                    "happens with reasoning models, which spend max_tokens on internal "
+                    "reasoning first. Raise max_tokens (try 1024+) and retry.")
+        raise EcoHashError(
+            "EcoHash returned no completion. The request may have been filtered or the model "
+            "errored; try again or use a different model." + hint
+        )
     return content
 
 

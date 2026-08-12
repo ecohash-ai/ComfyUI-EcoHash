@@ -75,6 +75,71 @@ def test_llm_raises_on_empty_choices():
                      system_prompt="", temperature=0.7, max_tokens=1024)
 
 
+@pytest.mark.parametrize("content", ["", "   ", "\n\n"])
+def test_llm_raises_on_blank_content(content):
+    """Reasoning models can burn all of max_tokens on reasoning and return blank content
+    with finish_reason 'length'. Returning it would feed an empty prompt downstream."""
+    from ecohash.client import EcoHashError
+    node = llm_nodes.EcoHashLLM()
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {
+            "choices": [{"message": {"content": content, "reasoning_content": "thinking..."},
+                         "finish_reason": "length"}]
+        }
+        with pytest.raises(EcoHashError, match="no completion"):
+            node.run(model="glm-5.2", mode="prompt_enhance", text="a cat",
+                     system_prompt="", temperature=0.7, max_tokens=200)
+
+
+def test_llm_blank_content_with_length_finish_hints_at_max_tokens():
+    from ecohash.client import EcoHashError
+    node = llm_nodes.EcoHashLLM()
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {
+            "choices": [{"message": {"content": ""}, "finish_reason": "length"}]
+        }
+        with pytest.raises(EcoHashError, match="max_tokens"):
+            node.run(model="glm-5.2", mode="chat", text="hi",
+                     system_prompt="", temperature=0.7, max_tokens=200)
+
+
+def test_llm_blank_content_without_length_finish_has_no_max_tokens_hint():
+    from ecohash.client import EcoHashError
+    node = llm_nodes.EcoHashLLM()
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {
+            "choices": [{"message": {"content": None}, "finish_reason": "stop"}]
+        }
+        with pytest.raises(EcoHashError) as excinfo:
+            node.run(model="glm-5.2", mode="chat", text="hi",
+                     system_prompt="", temperature=0.7, max_tokens=1024)
+    assert "max_tokens" not in str(excinfo.value)
+
+
+def test_vlm_raises_on_blank_content():
+    from ecohash import conversions
+    from ecohash.client import EcoHashError
+    node = llm_nodes.EcoHashVLMDescribe()
+    img = conversions.b64_to_image_tensor(_png_b64())
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = {
+            "choices": [{"message": {"content": ""}, "finish_reason": "length"}]
+        }
+        with pytest.raises(EcoHashError, match="no completion"):
+            node.describe(image=img, model="glm-5.2",
+                          prompt="Describe this image.", max_tokens=64)
+
+
+def test_llm_preserves_meaningful_whitespace_padded_content():
+    """Blank is rejected, but real content that merely has leading newlines is kept verbatim."""
+    node = llm_nodes.EcoHashLLM()
+    with patch.object(llm_nodes.client, "request_json") as mock_req:
+        mock_req.return_value = _chat_response("\n\nA majestic cat astronaut.")
+        (out,) = node.run(model="glm-5.2", mode="chat", text="x",
+                          system_prompt="", temperature=0.7, max_tokens=1024)
+    assert out == "\n\nA majestic cat astronaut."
+
+
 def test_vlm_describe_raises_on_empty_choices():
     from ecohash import conversions
     from ecohash.client import EcoHashError
