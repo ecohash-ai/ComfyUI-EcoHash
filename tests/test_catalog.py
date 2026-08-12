@@ -20,7 +20,7 @@ def test_get_catalog_fetches_live(monkeypatch):
     with patch.object(catalog.requests, "get", return_value=resp) as mock_get:
         data = catalog.get_catalog(force_refresh=True)
     assert data == FAKE
-    assert "status=active" in str(mock_get.call_args)
+    assert mock_get.call_args.kwargs["params"] == {"status": "active"}
 
 
 def test_get_catalog_falls_back_to_snapshot(monkeypatch):
