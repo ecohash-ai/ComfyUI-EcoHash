@@ -84,9 +84,11 @@ to a packaged snapshot so the graph still loads.
 
 Ready-to-load example workflows (text-to-image, prompt-enhance-then-generate,
 describe-and-regenerate, and TTS voiceover) live in [`example_workflows/`](example_workflows/).
-They are still being finalized against a live ComfyUI install and the real EcoHash API, so no
-workflow files or screenshots are included yet — see that folder's README for the current status.
-We do not fabricate screenshots or example output ahead of real testing.
+The node chains they use were exercised live against the real EcoHash API — see
+[`tests/SMOKE_RESULTS.md`](tests/SMOKE_RESULTS.md) — and the workflow JSON files themselves were
+validated against a live ComfyUI instance's node schema; see that folder's README for exactly
+what was and wasn't verified (a literal browser load/click-Queue pass was not performed, since
+this was done headlessly).
 
 ## Pricing
 
