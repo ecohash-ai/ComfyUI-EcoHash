@@ -10,12 +10,12 @@
 
 ## What is EcoHash
 
-[EcoHash](https://api.ecohash.com) is a hosted inference API for image generation/editing, LLM chat,
+[EcoHash](https://ecohash.com) is a hosted inference API for image generation/editing, LLM chat,
 vision-language description, text-to-speech, and speech-to-text. This package adds six ComfyUI
 nodes that call the EcoHash API directly from your workflows — no local GPU or model download
 required for these nodes.
 
-Sign up at **https://api.ecohash.com** to get an API key. New accounts receive a small free
+Sign up at **https://ecohash.com** to get an API key. New accounts receive a small free
 starter credit so you can try the nodes before adding a payment method. Full docs live at
 **https://docs.ecohash.com**.
 
@@ -112,7 +112,7 @@ per-model pricing at **https://docs.ecohash.com/billing/plans**.
 ComfyUI-EcoHash 为 ComfyUI 提供 6 个节点，通过 EcoHash API 调用图像生成/编辑、LLM 对话、图像描述
 （VLM）、文本转语音（TTS）和语音转文本（STT），无需本地 GPU 或下载模型。
 
-**注册**：前往 https://api.ecohash.com 注册账号，新账号会获得少量免费额度用于试用；完整文档见
+**注册**：前往 https://ecohash.com 注册账号，新账号会获得少量免费额度用于试用；完整文档见
 https://docs.ecohash.com。
 
 **安装**：在 ComfyUI-Manager 中搜索 "EcoHash" 安装，或将本仓库 `git clone` 到
