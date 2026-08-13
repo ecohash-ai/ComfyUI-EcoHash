@@ -1,11 +1,17 @@
-from ecohash import catalog, client, conversions
+try:
+    from ..ecohash import catalog, client, conversions
+except ImportError:
+    from ecohash import catalog, client, conversions
 
 
 def _get_text(out):
     """Guard: extract 'text' from response, raise EcoHashError if missing."""
     text = out.get("text")
     if text is None:
-        from ecohash.client import EcoHashError
+        try:
+            from ..ecohash.client import EcoHashError
+        except ImportError:
+            from ecohash.client import EcoHashError
         raise EcoHashError("EcoHash returned no transcription. The audio may be silent or in an unsupported language; try again with clearer audio.")
     return text
 

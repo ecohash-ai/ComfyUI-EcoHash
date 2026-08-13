@@ -1,4 +1,7 @@
-from ecohash import catalog, client, conversions
+try:
+    from ..ecohash import catalog, client, conversions
+except ImportError:
+    from ecohash import catalog, client, conversions
 
 SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512"]
 
@@ -6,7 +9,10 @@ SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512"]
 def _first_b64(out):
     data = out.get("data") or []
     if not data or "b64_json" not in data[0]:
-        from ecohash.client import EcoHashError
+        try:
+            from ..ecohash.client import EcoHashError
+        except ImportError:
+            from ecohash.client import EcoHashError
         raise EcoHashError("EcoHash returned no image data. The request may have been filtered; try a different prompt.")
     return data[0]["b64_json"]
 

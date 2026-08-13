@@ -1,6 +1,9 @@
 import base64
 
-from ecohash import catalog, client, conversions
+try:
+    from ..ecohash import catalog, client, conversions
+except ImportError:
+    from ecohash import catalog, client, conversions
 
 
 def _first_message_content(out):
@@ -12,7 +15,10 @@ def _first_message_content(out):
     # reasoning and return content as "" or null with finish_reason "length". Treat blank
     # the same as missing: returning "" here silently feeds an empty prompt downstream.
     if content is None or not content.strip():
-        from ecohash.client import EcoHashError
+        try:
+            from ..ecohash.client import EcoHashError
+        except ImportError:
+            from ecohash.client import EcoHashError
         hint = ""
         if choice.get("finish_reason") == "length":
             hint = (" The token budget ran out before any answer text was produced — this "

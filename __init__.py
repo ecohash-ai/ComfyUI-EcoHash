@@ -1,22 +1,22 @@
-import os
-import sys
-
-# ComfyUI loads this file via importlib.util.spec_from_file_location, which does
-# not add this package's own directory to sys.path. Without this, the absolute
-# imports below (`ecohash_nodes`, `ecohash`) would not resolve inside a real
-# ComfyUI install (though they do resolve under pytest, since pytest's rootdir
-# insertion already covers it). Insert it explicitly so both contexts work.
+# ComfyUI loads this file via importlib.util.spec_from_file_location with
+# submodule_search_locations set to this directory, which makes this file the
+# __init__ of a real package -- so relative imports below resolve correctly
+# inside a real ComfyUI install. Under pytest (and any other direct/top-level
+# load of this file, e.g. `import __init__`), there is no parent package, so
+# the relative form raises ImportError and we fall back to the absolute form,
+# which resolves because pytest puts the repo root on the import path.
 # NOTE: this package's node subpackage is deliberately named `ecohash_nodes`,
 # not `nodes` -- ComfyUI itself has a top-level module named `nodes` (its core
 # nodes.py), and a same-named subpackage here would silently resolve to that
 # module instead of ours once ComfyUI has already imported it.
-_here = os.path.dirname(os.path.abspath(__file__))
-if _here not in sys.path:
-    sys.path.insert(0, _here)
-
-from ecohash_nodes.audio_nodes import EcoHashSTT, EcoHashTTS
-from ecohash_nodes.image_nodes import EcoHashImageEdit, EcoHashImageGenerate
-from ecohash_nodes.llm_nodes import EcoHashLLM, EcoHashVLMDescribe
+try:
+    from .ecohash_nodes.audio_nodes import EcoHashSTT, EcoHashTTS
+    from .ecohash_nodes.image_nodes import EcoHashImageEdit, EcoHashImageGenerate
+    from .ecohash_nodes.llm_nodes import EcoHashLLM, EcoHashVLMDescribe
+except ImportError:  # direct/pytest context where this file is not loaded as a package
+    from ecohash_nodes.audio_nodes import EcoHashSTT, EcoHashTTS
+    from ecohash_nodes.image_nodes import EcoHashImageEdit, EcoHashImageGenerate
+    from ecohash_nodes.llm_nodes import EcoHashLLM, EcoHashVLMDescribe
 
 NODE_CLASS_MAPPINGS = {
     "EcoHashImageGenerate": EcoHashImageGenerate,
