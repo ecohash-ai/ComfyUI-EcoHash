@@ -2,6 +2,7 @@
 name = "comfyui-ecohash"
 version = "1.0.0"
 description = "Official EcoHash nodes for ComfyUI: image generation & editing, LLM prompt tools, vision captioning, TTS and STT powered by the EcoHash API."
+keywords = ["comfyui", "custom-nodes", "ecohash", "image-generation", "image-editing", "llm", "vlm", "tts", "stt"]
 license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = ["requests"]
