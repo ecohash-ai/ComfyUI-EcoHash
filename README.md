@@ -10,14 +10,14 @@
 
 ## What is EcoHash
 
-[EcoHash](https://ecohash.com) is a hosted inference API for image generation/editing, LLM chat,
+[EcoHash](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.intro) is a hosted inference API for image generation/editing, LLM chat,
 vision-language description, text-to-speech, and speech-to-text. This package adds six ComfyUI
 nodes that call the EcoHash API directly from your workflows — no local GPU or model download
 required for these nodes.
 
-Sign up at **https://ecohash.com** to get an API key. New accounts receive a small free
+Sign up at **[ecohash.com](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.signup)** to get an API key. New accounts receive a small free
 starter credit so you can try the nodes before adding a payment method. Full docs live at
-**https://docs.ecohash.com**.
+**[docs.ecohash.com](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.docs)**.
 
 ## Install
 
@@ -59,7 +59,7 @@ at request time from outside the workflow graph, using one of:
 
    `config.ini` is git-ignored by this repo so it won't be committed by accident.
 
-Get or manage your key at https://docs.ecohash.com/getting-started/api-keys.
+Get or manage your key in the [API keys guide](https://docs.ecohash.com/getting-started/api-keys?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.apikey).
 
 > **Never paste your API key into a node widget, a workflow JSON, or a screenshot.** Any key
 > value embedded in a saved workflow is exposed to everyone who receives that file.
@@ -77,7 +77,7 @@ Get or manage your key at https://docs.ecohash.com/getting-started/api-keys.
 
 All `model` dropdowns are populated live from the EcoHash model catalog at graph-build time, so
 the exact list of available models will change as EcoHash adds or retires models — check
-https://docs.ecohash.com for the current lineup. If the catalog can't be reached, nodes fall back
+the [model catalog](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.models) for the current lineup. If the catalog can't be reached, nodes fall back
 to a packaged snapshot so the graph still loads.
 
 ComfyUI caches node outputs — re-queueing an identical graph returns cached results without a new
@@ -96,14 +96,14 @@ this was done headlessly).
 ## Pricing
 
 EcoHash is metered, pay-as-you-go usage on top of your free starter credit. See current plans and
-per-model pricing at **https://docs.ecohash.com/billing/plans**.
+per-model pricing at **[the billing docs](https://docs.ecohash.com/billing/plans?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.pricing)**.
 
 ## Support
 
 - Bugs and feature requests: [GitHub Issues](https://github.com/ecohash-ai/ComfyUI-EcoHash/issues)
   (this repo)
 - Account or billing questions: the EcoLink console support chat —
-  https://docs.ecohash.com/troubleshooting/support
+  [EcoHash support](https://docs.ecohash.com/troubleshooting/support?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.support)
 
 ---
 
@@ -112,8 +112,8 @@ per-model pricing at **https://docs.ecohash.com/billing/plans**.
 ComfyUI-EcoHash 为 ComfyUI 提供 6 个节点，通过 EcoHash API 调用图像生成/编辑、LLM 对话、图像描述
 （VLM）、文本转语音（TTS）和语音转文本（STT），无需本地 GPU 或下载模型。
 
-**注册**：前往 https://ecohash.com 注册账号，新账号会获得少量免费额度用于试用；完整文档见
-https://docs.ecohash.com。
+**注册**：前往 [ecohash.com](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.signup-zh) 注册账号，新账号会获得少量免费额度用于试用；完整文档见
+[docs.ecohash.com](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.docs-zh)。
 
 **安装**：在 ComfyUI-Manager 中搜索 "EcoHash" 安装，或将本仓库 `git clone` 到
 `ComfyUI/custom_nodes/` 目录下，然后 `pip install -r requirements.txt`。
@@ -122,7 +122,7 @@ https://docs.ecohash.com。
 仓库，写在节点里的密钥会随之泄露。请改用环境变量 `ECOHASH_API_KEY`，或将 `config.ini.example`
 复制为 `config.ini` 并填入密钥。**切勿将密钥粘贴到节点、工作流文件或截图中。**
 
-**价格**：按量计费，详见 https://docs.ecohash.com/billing/plans。
+**价格**：按量计费，详见[计费文档](https://docs.ecohash.com/billing/plans?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.pricing-zh)。
 
 **支持**：在本仓库的 GitHub Issues 提交问题，或通过 EcoLink 控制台的在线支持聊天获取帮助：
-https://docs.ecohash.com/troubleshooting/support。
+[支持页面](https://docs.ecohash.com/troubleshooting/support?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.support-zh)。
