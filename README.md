@@ -1,19 +1,33 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ecohash-ai/ComfyUI-EcoHash/main/assets/icon.png" width="96" height="96" alt="EcoHash logo">
+  <a href="https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.logo"><img src="https://raw.githubusercontent.com/ecohash-ai/ComfyUI-EcoHash/main/assets/ecohash-logo.png" width="280" alt="EcoHash"></a>
 </p>
 
 <h1 align="center">ComfyUI-EcoHash</h1>
 
 <p align="center">EcoHash nodes for ComfyUI — image generation &amp; editing, LLM prompt tools, vision captioning, TTS and STT, powered by the EcoHash API.</p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
+  <a href="https://registry.comfy.org/nodes/comfyui-ecohash"><img src="https://img.shields.io/badge/Comfy%20Registry-comfyui--ecohash-1a1a1a" alt="Comfy Registry"></a>
+  <a href="https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.docs-badge"><img src="https://img.shields.io/badge/documentation-6D28D9" alt="Documentation"></a>
+  <a href="https://x.com/ecohashdev"><img src="https://img.shields.io/badge/X-@ecohashdev-000000?logo=x&logoColor=white" alt="X"></a>
+  <a href="https://huggingface.co/ecohash-ai"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-ecohash--ai-FFD21E" alt="Hugging Face"></a>
+</p>
+
 ---
 
 ## What is EcoHash
 
-[EcoHash](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.intro) is a hosted inference API for image generation/editing, LLM chat,
+[EcoHash](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.intro) runs an NVIDIA RTX PRO 6000 GPU cloud and, on top of it,
+an OpenAI-compatible inference API for open models: image generation and editing, LLM chat,
 vision-language description, text-to-speech, and speech-to-text. This package adds six ComfyUI
-nodes that call the EcoHash API directly from your workflows — no local GPU or model download
-required for these nodes.
+nodes that call that API directly from your workflows — no local GPU or model download required
+for these nodes.
+
+Need a whole GPU instead of an API call? The same account rents
+[RTX PRO 6000 Blackwell instances](https://ecohash.com/gpu/rtx-pro-6000?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu) (96 GB VRAM)
+by the hour, so you can run a full ComfyUI stack with local checkpoints alongside these nodes.
+See the [GPU cloud docs](https://docs.ecohash.com/gpu-compute/overview?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-docs).
 
 Sign up at **[ecohash.com](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.signup)** to get an API key. New accounts receive a small free
 starter credit so you can try the nodes before adding a payment method. Full docs live at
@@ -109,8 +123,12 @@ per-model pricing at **[the billing docs](https://docs.ecohash.com/billing/plans
 
 ## 中文说明
 
-ComfyUI-EcoHash 为 ComfyUI 提供 6 个节点，通过 EcoHash API 调用图像生成/编辑、LLM 对话、图像描述
-（VLM）、文本转语音（TTS）和语音转文本（STT），无需本地 GPU 或下载模型。
+EcoHash 提供 NVIDIA RTX PRO 6000 GPU 云，以及构建其上的 OpenAI 兼容推理 API。ComfyUI-EcoHash 为
+ComfyUI 提供 6 个节点，通过该 API 调用图像生成/编辑、LLM 对话、图像描述（VLM）、文本转语音（TTS）
+和语音转文本（STT），无需本地 GPU 或下载模型。
+
+**GPU 云**：同一个账号也可按小时租用 [RTX PRO 6000 Blackwell 实例](https://ecohash.com/gpu/rtx-pro-6000?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-zh)（96 GB 显存），
+用于运行带本地模型的完整 ComfyUI 环境，详见 [GPU 云文档](https://docs.ecohash.com/gpu-compute/overview?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-docs-zh)。
 
 **注册**：前往 [ecohash.com](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.signup-zh) 注册账号，新账号会获得少量免费额度用于试用；完整文档见
 [docs.ecohash.com](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.docs-zh)。
