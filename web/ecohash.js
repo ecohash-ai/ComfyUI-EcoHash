@@ -352,6 +352,15 @@ function hookWidget(node, name, fn) {
     item.callback = function (...args) { previous?.apply(this, args); fn(...args); };
 }
 
+function addUiWidget(node, ...args) {
+    const item = node.addWidget(...args);
+    // LiteGraph saves the widget property, while the API prompt builder checks
+    // options.serialize. Apply this only to our UI widgets: ComfyUI's seed
+    // control also has options.serialize=false but must persist in workflows.
+    item.serialize = false;
+    return item;
+}
+
 app.registerExtension({
     name: "EcoHash.Connections",
     commands: [{ id: "EcoHash.ManageConnections", label: uiText("EcoHash connections / 连接设置"), function: () => showManager() }],
@@ -398,18 +407,18 @@ app.registerExtension({
     nodeCreated(node) {
         const type = nodeType(node);
         if (!type?.startsWith("EcoHash")) return;
-        node.addWidget("button", "Connections / 连接设置", null, () => showManager(connectionId(node)), { serialize: false });
-        if (isDedicated(type)) node.addWidget("combo", "Choose discovered model", manualModel, (value) => {
+        addUiWidget(node, "button", "Connections / 连接设置", null, () => showManager(connectionId(node)), { serialize: false });
+        if (isDedicated(type)) addUiWidget(node, "combo", "Choose discovered model", manualModel, (value) => {
             if (value === manualModel) return;
             const model = widget(node, "model");
             model.value = value;
             model.callback?.(value);
             updateNode(node);
         }, { values: [manualModel], serialize: false });
-        if (type.endsWith("TTS")) node.addWidget("combo", "Choose voice", manualVoice, (value) => {
+        if (type.endsWith("TTS")) addUiWidget(node, "combo", "Choose voice", manualVoice, (value) => {
             if (value !== manualVoice) widget(node, "voice").value = value;
         }, { values: [manualVoice], serialize: false });
-        node.addWidget("button", "Refresh models / 刷新模型", null, async () => {
+        addUiWidget(node, "button", "Refresh models / 刷新模型", null, async () => {
             const status = widget(node, "Connection status");
             if (status) status.value = uiText("Loading models… / 正在读取模型…");
             try {
@@ -421,12 +430,14 @@ app.registerExtension({
             node.setDirtyCanvas?.(true, true);
         }, { serialize: false });
         for (const name of ["Connection status", "Model information"]) {
-            const item = node.addWidget("text", name, "", () => {}, { serialize: false });
+            const item = addUiWidget(node, "text", name, "", () => {}, { serialize: false });
             item.options.read_only = true;
         }
         const labels = { "Choose discovered model": "选择已发现的模型", "Choose voice": "选择音色", "Connection status": "连接状态", "Model information": "模型信息" };
         for (const item of node.widgets || []) {
-            if (item.options?.serialize === false) item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);
+            if (item.options?.serialize === false) {
+                item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);
+            }
         }
         hookWidget(node, "connection", async () => {
             if (type.endsWith("TTS")) widget(node, "voice").value = "";

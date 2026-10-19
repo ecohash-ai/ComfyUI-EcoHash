@@ -93,9 +93,11 @@ The expanded verification artifacts are `/private/tmp/ecohash-all-types-live-res
 
 ## Pending real deployment verification
 
-No real dedicated endpoint or credential has been supplied yet. Model compatibility,
-GPU allocation, output quality, cold starts and latency of a real deployment remain
-unverified. The implemented protocol is synchronous OpenAI-compatible image, chat,
+A real text-to-image check now passes for `Qwen/Qwen-Image-2.1:248` through the existing
+ComfyUI server, using an adapted official template. See [QWEN_248_RESULTS.md](QWEN_248_RESULTS.md)
+for the exact settings, 1024×1024 output and 15.183 s workflow duration. Editing, other
+model types, cold starts and physical GPU allocation remain unverified on real deployments.
+The implemented protocol is synchronous OpenAI-compatible image, chat,
 vision, TTS and STT APIs with Bearer auth. Vision requires model support for image
 inputs; TTS requires 16-bit PCM WAV; STT requires JSON transcription text. An
 asynchronous service or another protocol needs an adapter based on its API contract.
