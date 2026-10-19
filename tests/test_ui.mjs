@@ -80,3 +80,10 @@ test("hints expose known capabilities and never invent private model support", (
     assert.match(capabilityHint({ id: "m", voices: ["speaker-a"] }, "EcoHashTTS"), /speaker-a/);
     assert.match(capabilityHint({ id: "m", default_image_steps: 8, supports_image_edit: false }, "EcoHashImageGenerate", "zh"), /默认步数: 8.*仅图像生成/);
 });
+
+test("video nodes discover video models without mixing image or language categories", () => {
+    const models = [{ id: "v", category: "video" }, { id: "i", category: "image" }, { id: "unknown" }];
+    assert.deepEqual(modelsForNode(models, "EcoHashDedicatedVideoGenerate").map((m) => m.id), ["v", "unknown"]);
+    assert.deepEqual(modelsForNode(models, "EcoHashVideoGenerate").map((m) => m.id), ["v", "unknown"]);
+    assert.match(capabilityHint(models[0], "EcoHashDedicatedVideoGenerate", "zh"), /文生视频.*保存视频/);
+});

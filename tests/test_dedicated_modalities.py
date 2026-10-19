@@ -3,13 +3,14 @@ from unittest.mock import patch
 import pytest
 
 from ecohash import client, connections
-from ecohash_nodes import audio_nodes, image_nodes, llm_nodes
+from ecohash_nodes import audio_nodes, image_nodes, llm_nodes, video_nodes
 from tests.test_client import _mock_response
 from tests.test_conversions import _wav_bytes
 
 NODES = [image_nodes.EcoHashDedicatedImageGenerate, image_nodes.EcoHashDedicatedImageEdit,
          llm_nodes.EcoHashDedicatedLLM, llm_nodes.EcoHashDedicatedVLMDescribe,
-         audio_nodes.EcoHashDedicatedTTS, audio_nodes.EcoHashDedicatedSTT]
+         audio_nodes.EcoHashDedicatedTTS, audio_nodes.EcoHashDedicatedSTT,
+         video_nodes.EcoHashDedicatedVideoGenerate]
 
 
 @pytest.mark.parametrize("node", NODES)

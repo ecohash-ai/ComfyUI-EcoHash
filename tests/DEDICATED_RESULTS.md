@@ -100,7 +100,11 @@ model types, cold starts and physical GPU allocation remain unverified on real d
 The implemented protocol is synchronous OpenAI-compatible image, chat,
 vision, TTS and STT APIs with Bearer auth. Vision requires model support for image
 inputs; TTS requires 16-bit PCM WAV; STT requires JSON transcription text. An
-asynchronous service or another protocol needs an adapter based on its API contract.
+asynchronous image/chat/speech service or another protocol needs an adapter based on its API contract.
+
+Video support was subsequently added as a separate asynchronous adapter, with public
+and dedicated VIDEO-output nodes. See [MINIMAX_247_RESULTS.md](MINIMAX_247_RESULTS.md)
+for instance 247's real protocol verification and running-ComfyUI result.
 
 After configuring the real connection, run:
 

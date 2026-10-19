@@ -9,6 +9,11 @@ Configure credentials in the **EcoHash** sidebar / **Connections** dialog before
 - `enhance_then_generate.json`: public LLM prompt enhancement → Image Generate → Preview Image.
 - `describe_and_regenerate.json`: Load Image → public VLM Describe → Image Generate → Preview Image.
 - `tts_voiceover.json`: public TTS → Preview Audio.
+- `text_to_video.json`: public text-to-video → Save Video (with audio).
+- `dedicated_text_to_video.json`: dedicated text-to-video → Save Video. Select a connection,
+  exact served model ID and protocol. For native SGLang MiniMax-H3 choose `minimax_h3`;
+  its 768p profile and native audio are handled automatically. Existing job IDs resume
+  polling/download instead of submitting a new generation.
 - `dedicated_enhance_then_generate.json`: Dedicated LLM → Dedicated Image Generate → Preview Image.
 - `dedicated_describe_and_regenerate.json`: Load Image → Dedicated VLM Describe → Dedicated Image Generate → Preview Image.
 - `dedicated_tts_voiceover.json`: Dedicated TTS → Preview Audio. Replace both model and voice placeholders.

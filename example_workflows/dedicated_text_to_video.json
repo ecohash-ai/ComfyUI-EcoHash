@@ -1,0 +1,156 @@
+{
+  "id": "6af347ac-78f7-436b-afda-b76a5964cb3b",
+  "revision": 0,
+  "last_node_id": 3,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "EcoHashDedicatedVideoGenerate",
+      "pos": [
+        80,
+        80
+      ],
+      "size": [
+        560,
+        570
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "job_id",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EcoHashDedicatedVideoGenerate"
+      },
+      "widgets_values": [
+        "YOUR_DEPLOYED_MODEL_ID",
+        "A small orange cat turns toward the camera in a rainy neon alley, natural motion and ambient rain.",
+        "openai",
+        4,
+        "16:9",
+        "720p",
+        true,
+        1280,
+        720,
+        0,
+        42,
+        "fixed",
+        "",
+        1800,
+        "dedicated"
+      ],
+      "widgets_values_named": {
+        "model": "YOUR_DEPLOYED_MODEL_ID",
+        "prompt": "A small orange cat turns toward the camera in a rainy neon alley, natural motion and ambient rain.",
+        "protocol": "openai",
+        "duration": 4,
+        "aspect_ratio": "16:9",
+        "resolution": "720p",
+        "generate_audio": true,
+        "width": 1280,
+        "height": 720,
+        "steps": 0,
+        "seed": 42,
+        "control_after_generate": "fixed",
+        "job_id": "",
+        "wait_timeout": 1800,
+        "connection": "dedicated"
+      }
+    },
+    {
+      "id": 2,
+      "type": "SaveVideo",
+      "pos": [
+        720,
+        80
+      ],
+      "size": [
+        500,
+        420
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": []
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "video/EcoHash",
+        "auto",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "MarkdownNote",
+      "pos": [
+        720,
+        560
+      ],
+      "size": [
+        500,
+        260
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## EcoHash text to video\n\nConfigure the connection in the EcoHash sidebar before running. VIDEO → Save Video preserves the MP4 audio track.\n\nLeave job_id blank for a new generation. To resume a task after a timeout/interruption, paste its ID from Video task or the server log; keep the original connection and protocol. Interrupting ComfyUI stops local waiting, not the remote job.\n\nProtocols: ecohash = /video/generations; openai = multipart /videos; minimax_h3 = SGLang H3 JSON /videos (768p, native audio). Use the exact served model ID. MiniMax-H3 on an instance proxy uses the raw model ID without the gateway :instance suffix."
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  },
+  "version": 0.4
+}

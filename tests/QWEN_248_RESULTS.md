@@ -62,3 +62,17 @@ The API prefix therefore stays `https://api.ecohash.com/v1`; the node adds
 
 This verifies text-to-image generation for instance 248 with the tested settings.
 Image editing and other deployments were not exercised by this real-service check.
+
+## Alternate content and model-library grouping
+
+Changed the saved workflow prompt to an orange cat wearing a blue scarf in a rainy,
+neon-lit alley. Kept 1024×1024, 25 steps and fixed seed 42. Prompt
+`b1416307-a5ba-49c8-a49b-2cefe0cdf63c` succeeded in **14.729 seconds** and produced
+the expected cat image. Exported the workflow without credentials to
+`/private/tmp/ecohash-qwen-248/cat-rain-neon-workflow.json`; the image is
+`/private/tmp/ecohash-qwen-248/cat-rain-neon.png`.
+
+The node library was split into `EcoHash/PublicModels` and `EcoHash/DedicatedModels`,
+localized as 公共模型 / 专有模型 in Chinese and Public Models / Dedicated Models in
+English. Existing class IDs are unchanged. The initial grouping contained six nodes
+per group; the subsequent video addition brings each group to seven.

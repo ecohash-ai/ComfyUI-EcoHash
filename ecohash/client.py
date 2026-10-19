@@ -128,7 +128,7 @@ def _raise_for_status(resp, endpoint=None) -> None:
     raise EcoHashError(message)
 
 
-def _request(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None):
+def _request(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None, allow_redirects=None):
     key = endpoint.api_key if endpoint is not None else load_api_key()
     base_url = endpoint.base_url if endpoint is not None else BASE_URL
     if timeout is None:
@@ -138,7 +138,8 @@ def _request(method: str, path: str, *, json_body=None, data=None, files=None, t
         resp = requests.request(
             method, base_url + path,
             json=json_body, data=data, files=files, headers=headers, timeout=timeout,
-            **({"allow_redirects": False} if endpoint is not None else {}),
+            **({"allow_redirects": allow_redirects} if allow_redirects is not None else
+               {"allow_redirects": False} if endpoint is not None else {}),
         )
     except requests.RequestException as exc:
         if endpoint is not None:
@@ -150,9 +151,9 @@ def _request(method: str, path: str, *, json_body=None, data=None, files=None, t
     return resp
 
 
-def request_json(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None) -> dict:
-    resp = _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout, endpoint=endpoint)
-    if resp.status_code == 202:
+def request_json(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None, allow_async=False, allow_redirects=None) -> dict:
+    resp = _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout, endpoint=endpoint, allow_redirects=allow_redirects)
+    if resp.status_code == 202 and not allow_async:
         raise EcoHashError(
             "Inference API returned an asynchronous job (HTTP 202). These nodes require a synchronous "
             "response; this endpoint needs a task-polling adapter."

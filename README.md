@@ -4,7 +4,7 @@
 
 <h1 align="center">ComfyUI-EcoHash</h1>
 
-<p align="center">EcoHash nodes for ComfyUI — image generation &amp; editing, LLM prompt tools, vision captioning, TTS and STT, powered by the EcoHash API.</p>
+<p align="center">EcoHash nodes for ComfyUI — image and video generation, image editing, LLM prompt tools, vision captioning, TTS and STT, powered by the EcoHash API.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
@@ -20,7 +20,7 @@
 
 [EcoHash](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.intro) runs an NVIDIA RTX PRO 6000 GPU cloud and, on top of it,
 an OpenAI-compatible inference API for open models: image generation and editing, LLM chat,
-vision-language description, text-to-speech, and speech-to-text. This package adds twelve ComfyUI
+vision-language description, video generation, text-to-speech, and speech-to-text. This package adds fourteen ComfyUI
 nodes that call that API directly from your workflows — no local GPU or model download required
 for these nodes.
 
@@ -89,7 +89,7 @@ Each Dedicated node has an optional `connection` selection; existing workflows d
 to `dedicated`. Multiple independent deployments can run in one workflow. Shared workflows store
 only connection IDs and model IDs. Recipients create the same ID locally or select another
 connection. Missing IDs produce a mapping error and never fall back to another deployment.
-The original six public nodes keep using `public`.
+The public nodes use `public`.
 
 The manager configures this ComfyUI server. Use it from the same trusted server environment
 where you manage your existing ComfyUI configuration.
@@ -158,9 +158,9 @@ Node status shows waiting, completed, cached, interrupted or failed execution.
 ## Dedicated inference (B)
 
 The node library has two groups under **EcoHash**: **Public Models** and **Dedicated Models**
-(Chinese: **公共模型** and **专有模型**), each containing six nodes. The six dedicated nodes
+(Chinese: **公共模型** and **专有模型**), each containing seven nodes. The seven dedicated nodes
 cover all supported model types: image generation/editing,
-LLM, vision-language description, TTS and STT. They call separately deployed models. The original six
+LLM, vision-language description, video, TTS and STT. They call separately deployed models. The public
 nodes continue to use the public EcoHash API (A), so both can be used in the same workflow.
 Dedicated nodes accept a free-text model ID and do not consult the public model catalog.
 
@@ -209,7 +209,7 @@ Describe** for a model that supports image inputs. For audio, use **EcoHash Dedi
 enter the model's actual voice ID for TTS. Each node independently selects its connection, so
 language, image and audio deployments can use different URLs and keys in one workflow.
 
-The current protocol is a **synchronous, OpenAI-compatible API**. Deployments implement the
+Image, chat and speech nodes use a **synchronous, OpenAI-compatible API**. Deployments implement the
 routes needed by their model type; they do not need to implement every route:
 
 - Generation: `POST {base_url}/images/generations`, JSON with `model`, `prompt`, `size`,
@@ -229,7 +229,8 @@ routes needed by their model type; they do not need to implement every route:
 - STT: `POST {base_url}/audio/transcriptions`, multipart fields `model`, optional
   `language`, and WAV `file`; return `{"text": "..."}` JSON.
 
-An HTTP 202 job response requires a task-polling adapter and is reported as unsupported.
+Image, chat and speech nodes report HTTP 202 jobs as unsupported. Video nodes implement
+the asynchronous protocols below.
 Other response schemas, authentication schemes, and deployment-routing headers also require
 an adapter. API requests do not follow redirects; configure the final API base URL directly.
 LoRA, ControlNet and other deployment-specific parameters are not exposed by these nodes yet.
@@ -253,6 +254,46 @@ python scripts/smoke_dedicated.py --connection studio --model YOUR_DEPLOYED_MODE
 The script saves generated/edited PNGs in a temporary directory and prints their paths and
 dimensions. It exercises the node implementations directly; it does not start ComfyUI or
 validate browser interaction or workflow execution.
+
+## Video generation
+
+Use **EcoHash Video Generate** under Public Models, or **EcoHash Dedicated Video Generate**
+under Dedicated Models. Connect `video` (`VIDEO`) to ComfyUI's **Save Video** for playback and
+permanent saving with its audio track. A current ComfyUI installation with native VIDEO support
+is required. The node downloads an MP4 to ComfyUI's temporary directory; Save Video writes it
+to the output directory. These nodes support **text-to-video**; models requiring image/audio/video
+references need a separate reference-input adapter.
+
+The public node uses `POST /video/generations`, then `GET /video/jobs/{id}` and the returned
+download URL. Configure model, prompt, duration, aspect ratio, resolution and audio generation.
+Dedicated nodes add a `protocol` choice matching the selected deployment:
+
+| Protocol | Submit / poll | Settings |
+| --- | --- | --- |
+| `ecohash` | JSON `/video/generations` → `/video/jobs/{id}` | Resolution, aspect ratio, duration, audio |
+| `openai` | Multipart `/videos` → `/videos/{id}` → `/videos/{id}/content` | Width/height and seconds; optional steps/seed only when supported by the deployment |
+| `minimax_h3` | Native SGLang JSON `/videos` → `/videos/{id}` → `/videos/{id}/content` | `task=t2va`, empty conditions, 768-pixel short edge, aspect ratio, requested duration, 50 steps by default; native audio |
+
+For **instance 247**, add a connection named `minimax-h3-247` with API prefix
+`https://api.ecohash.com/inference-instances/247/proxy/v1` and your instance-authorized key.
+Select this connection, protocol `minimax_h3`, and model **`/mnt/shared/MiniMaxAI/MiniMax-H3`**.
+The gateway model ID **`/mnt/shared/MiniMaxAI/MiniMax-H3:247`** is valid in the authenticated
+model list, but the supplied unified `/v1/video/generations` route returned 404 in the real check;
+the native proxy route successfully generated video. Do not add the suffix when calling the
+already instance-scoped proxy. See [the real test record](tests/MINIMAX_247_RESULTS.md).
+The exact H3 payload follows [SGLang's native video contract](https://github.com/sgl-project/sglang/blob/main/docs/cookbook/diffusion/MiniMax/MiniMax-H3.mdx).
+
+Video submission accepts HTTP 200 or 202 and **never automatically retries a POST**. The node
+shows the job ID and status in **Video task**, also logs the ID on the server, and returns it
+as a STRING output. `wait_timeout` (default 1800 seconds) limits waiting for completion;
+the connection timeout limits each request. To recover after a timeout or interruption, paste
+the ID into `job_id` and keep the same connection/protocol. This resumes polling and download
+without another generation. Clear `job_id` to generate a new video. Stopping ComfyUI only stops
+local waiting; the remote job may continue. Signed result URLs and content redirects are fetched
+without forwarding the inference key. Downloads are limited to 512 MiB per video.
+
+Examples: [`text_to_video.json`](example_workflows/text_to_video.json) and
+[`dedicated_text_to_video.json`](example_workflows/dedicated_text_to_video.json).
 
 ## Example workflows
 
@@ -317,10 +358,18 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 图片描述使用 **EcoHash Dedicated VLM Describe**，要求模型支持图片输入。语音模型使用
 **EcoHash Dedicated TTS / STT**；TTS 的音色需按模型选择或填写。
 每个节点都可选择独立专属实例，A、B 使用独立密钥并可混用。当前支持同步的 OpenAI 兼容
-图像、聊天和语音接口；异步任务或其他协议需要另行适配，详见上方 Dedicated inference。
+图像、聊天和语音接口；视频节点支持异步提交、任务查询和 MP4 下载，详见上方 Video generation。
+
+**视频**：新增 **EcoHash 视频生成 / 专属视频生成**，输出 `VIDEO` 接“保存视频”，保留音轨。
+支持文生视频；需要参考图、参考音频或参考视频的模型尚未接入。专属节点按实际服务选择
+`ecohash`、`openai` 或 `minimax_h3` 协议；仅显示该协议的有效参数。
+247 实例使用 API 前缀 `https://api.ecohash.com/inference-instances/247/proxy/v1`，
+模型填 `/mnt/shared/MiniMaxAI/MiniMax-H3`（原生代理不带 `:247`），协议选 `minimax_h3`。
+“已有任务 ID”留空会生成；填写原任务 ID 则只恢复查询和下载，不会重新提交。任务等待超时默认
+1800 秒，独立于连接的单次请求超时。ComfyUI 中断不会自动取消远端任务。
 
 **参数和帮助**：`size=custom` 时显示宽高；LLM 的 `custom` 模式才显示系统提示词。
-节点库的 EcoHash 下分为“公共模型”和“专有模型”两个分组，每组各包含 6 个节点。
+节点库的 EcoHash 下分为“公共模型”和“专有模型”两个分组，每组各包含 7 个节点。
 音色按模型元数据显示可选项，未提供列表时支持手填。示例可从工作流模板浏览器加载；节点的信息面板
 提供使用说明。Windows Portable 安装依赖时请使用内嵌 Python，命令见上方 Install。
 

@@ -16,6 +16,7 @@ try:
         EcoHashImageEdit, EcoHashImageGenerate,
     )
     from .ecohash_nodes.llm_nodes import EcoHashDedicatedLLM, EcoHashDedicatedVLMDescribe, EcoHashLLM, EcoHashVLMDescribe
+    from .ecohash_nodes.video_nodes import EcoHashDedicatedVideoGenerate, EcoHashVideoGenerate
 except ImportError:  # direct/pytest context where this file is not loaded as a package
     from ecohash_nodes.audio_nodes import EcoHashDedicatedSTT, EcoHashDedicatedTTS, EcoHashSTT, EcoHashTTS
     from ecohash_nodes.image_nodes import (
@@ -23,6 +24,7 @@ except ImportError:  # direct/pytest context where this file is not loaded as a 
         EcoHashImageEdit, EcoHashImageGenerate,
     )
     from ecohash_nodes.llm_nodes import EcoHashDedicatedLLM, EcoHashDedicatedVLMDescribe, EcoHashLLM, EcoHashVLMDescribe
+    from ecohash_nodes.video_nodes import EcoHashDedicatedVideoGenerate, EcoHashVideoGenerate
 
 NODE_CLASS_MAPPINGS = {
     "EcoHashImageGenerate": EcoHashImageGenerate,
@@ -37,6 +39,8 @@ NODE_CLASS_MAPPINGS = {
     "EcoHashVLMDescribe": EcoHashVLMDescribe,
     "EcoHashTTS": EcoHashTTS,
     "EcoHashSTT": EcoHashSTT,
+    "EcoHashVideoGenerate": EcoHashVideoGenerate,
+    "EcoHashDedicatedVideoGenerate": EcoHashDedicatedVideoGenerate,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -52,6 +56,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EcoHashVLMDescribe": "EcoHash VLM Describe",
     "EcoHashTTS": "EcoHash TTS",
     "EcoHashSTT": "EcoHash STT",
+    "EcoHashVideoGenerate": "EcoHash Video Generate",
+    "EcoHashDedicatedVideoGenerate": "EcoHash Dedicated Video Generate",
 }
 
 WEB_DIRECTORY = "./web"

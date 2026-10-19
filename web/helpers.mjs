@@ -40,6 +40,7 @@ export function modelsForNode(models, type) {
     const category = {
         EcoHashLLM: ["llm", "llm_vision"], EcoHashVLMDescribe: ["llm_vision"],
         EcoHashTTS: ["speech_tts"], EcoHashSTT: ["speech_stt"],
+        EcoHashVideoGenerate: ["video"],
     }[type] ?? ["image"];
     return models.filter((model) => {
         if (model.category && !category.includes(model.category)) return false;
@@ -64,6 +65,7 @@ export function capabilityHint(model, type, locale = "en") {
         if (model.supported_sizes?.length) hints.push(`${t("Sizes / 尺寸")}: ${model.supported_sizes.join(", ")}`);
     }
     if (type.endsWith("TTS")) hints.push(model.voices?.length ? `${t("Voices / 音色")}: ${model.voices.join(", ")}` : t("Voice IDs vary by model; enter a voice supported by this model. / 请填写该模型支持的音色 ID。"));
+    if (type.endsWith("VideoGenerate")) hints.push(t("Text-to-video; asynchronous job → MP4 with audio when supported → Save Video / 文生视频：异步任务 → MP4（保留音轨）→ 保存视频"));
     return hints.join(" · ");
 }
 

@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionHint, connectionOptions, isDedicated, localizedText, modelsForNode, replaceOptions, setWidgetVisible } from "./helpers.mjs?v=connections-6";
+import { capabilityHint, connectionHint, connectionOptions, isDedicated, localizedText, modelsForNode, replaceOptions, setWidgetVisible } from "./helpers.mjs?v=connections-7";
 
 const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map() };
 let profilesRequest;
@@ -92,7 +92,16 @@ function updateNode(node) {
     if (info) info.value = capabilityHint(selected, type, uiLocale());
     const status = widget(node, "Connection status");
     if (status) status.value = uiText(result?.error || state.checked.get(id)?.message || connectionHint(state.connections, id, uiLocale()));
-    for (const name of ["width", "height"]) setVisible(node, name, widget(node, "size")?.value === "custom");
+    const isVideo = type.endsWith("VideoGenerate");
+    const protocol = widget(node, "protocol")?.value || "ecohash";
+    for (const name of ["width", "height"]) setVisible(node, name, isVideo ? protocol === "openai" : widget(node, "size")?.value === "custom");
+    if (isVideo) {
+        for (const name of ["resolution", "generate_audio"]) setVisible(node, name, protocol === "ecohash");
+        for (const name of ["steps", "seed"]) setVisible(node, name, protocol !== "ecohash");
+        setVisible(node, "aspect_ratio", protocol !== "openai");
+        const seedControl = node.widgets?.find((item) => item.name === "control_after_generate");
+        setWidgetVisible(seedControl, protocol !== "ecohash");
+    }
     setVisible(node, "system_prompt", widget(node, "mode")?.value === "custom");
     node.setDirtyCanvas?.(true, true);
 }
@@ -403,6 +412,16 @@ app.registerExtension({
                 if (nodeType(node || {})?.startsWith("EcoHash")) executionStatus(node, "Cached result / 使用缓存结果");
             }
         });
+        api.addEventListener("ecohash_video_progress", (event) => {
+            const detail = event.detail;
+            const node = app.graph?.getNodeById(detail?.node);
+            const task = widget(node || {}, "Video task");
+            if (!task) return;
+            const names = { queued: "Queued / 排队中", processing: "Generating / 生成中", in_progress: "Generating / 生成中", running: "Generating / 生成中", completed: "Completed / 已完成", failed: "Failed / 失败" };
+            const percent = Number.isFinite(detail.progress) ? ` ${detail.progress}%` : "";
+            task.value = `${uiText(names[detail.status] || String(detail.status))}${percent} · ${detail.job_id}`;
+            node.setDirtyCanvas?.(true, true);
+        });
     },
     nodeCreated(node) {
         const type = nodeType(node);
@@ -433,7 +452,11 @@ app.registerExtension({
             const item = addUiWidget(node, "text", name, "", () => {}, { serialize: false });
             item.options.read_only = true;
         }
-        const labels = { "Choose discovered model": "选择已发现的模型", "Choose voice": "选择音色", "Connection status": "连接状态", "Model information": "模型信息" };
+        if (type.endsWith("VideoGenerate")) {
+            const task = addUiWidget(node, "text", "Video task", uiText("Job ID appears here after submission; copy it to job_id to resume. / 提交后显示任务 ID；复制到 job_id 可恢复查询。"), () => {}, { serialize: false });
+            task.options.read_only = true;
+        }
+        const labels = { "Choose discovered model": "选择已发现的模型", "Choose voice": "选择音色", "Connection status": "连接状态", "Model information": "模型信息", "Video task": "视频任务" };
         for (const item of node.widgets || []) {
             if (item.options?.serialize === false) {
                 item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);
@@ -454,7 +477,7 @@ app.registerExtension({
             }
             updateNode(node);
         });
-        for (const name of ["mode", "size"]) hookWidget(node, name, () => updateNode(node));
+        for (const name of ["mode", "size", "protocol"]) hookWidget(node, name, () => updateNode(node));
         const configured = node.onConfigure;
         node.onConfigure = function (...args) { configured?.apply(this, args); updateNode(this); };
         updateNode(node);

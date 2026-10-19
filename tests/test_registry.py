@@ -8,6 +8,7 @@ def test_node_mappings_complete():
         "EcoHashDedicatedImageGenerate", "EcoHashDedicatedImageEdit",
         "EcoHashDedicatedLLM", "EcoHashDedicatedVLMDescribe",
         "EcoHashDedicatedTTS", "EcoHashDedicatedSTT",
+        "EcoHashVideoGenerate", "EcoHashDedicatedVideoGenerate",
     }
     assert all(v for v in root.NODE_DISPLAY_NAME_MAPPINGS.values())
 
