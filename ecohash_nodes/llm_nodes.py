@@ -131,7 +131,10 @@ class EcoHashVLMDescribe:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return _vlm_inputs((catalog.model_ids("llm_vision"),))
+        models = [m["model_id"] for m in catalog.schema_catalog() if m.get("model_id") and
+                  (m.get("category") == "llm_vision" or
+                   m.get("category") == "llm" and "image" in (m.get("input_modalities") or []))]
+        return _vlm_inputs((models or ["(catalog unavailable)"],))
 
     def describe(self, image, model, prompt, max_tokens):
         return _describe(image, model, prompt, max_tokens)

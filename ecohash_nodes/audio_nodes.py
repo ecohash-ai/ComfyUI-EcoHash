@@ -20,7 +20,7 @@ def _get_text(out):
     return text
 
 
-def _tts_inputs(model_input, voice="af_bella"):
+def _tts_inputs(model_input, voice=""):
     return {
         "required": {
             "model": model_input,

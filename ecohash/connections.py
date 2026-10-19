@@ -14,6 +14,20 @@ CONNECTIONS_PATH = Path(__file__).resolve().parent.parent / "connections.json"
 _LOCK = threading.RLock()
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}\Z")
 BUILTINS = {"public": "EcoHash public API", "dedicated": "Default dedicated endpoint"}
+_OPERATION_PATHS = ("/images/generations", "/images/edits", "/chat/completions", "/audio/transcriptions", "/audio/speech", "/video/generations", "/videos")
+
+
+def normalize_base_url(value, *, validate=True):
+    """Accept a copied inference endpoint while storing its API prefix."""
+    value = value.strip().rstrip("/")
+    if not value:
+        return value
+    if validate:
+        client._validate_http_url(value, base_url=True)
+    for suffix in _OPERATION_PATHS:
+        if value.endswith(suffix):
+            return value[:-len(suffix)]
+    return value
 
 
 def _store():
@@ -76,7 +90,7 @@ def values(connection_id):
         if not isinstance(value, (str, int, float)) or isinstance(value, bool):
             raise client.EcoHashError(f"Invalid {field} in connection '{connection_id}'.")
         result[field], sources[field] = str(value).strip(), source
-    result["base_url"] = result["base_url"].rstrip("/")
+    result["base_url"] = normalize_base_url(result["base_url"], validate=False)
     result["sources"] = sources
     return result
 
@@ -95,8 +109,8 @@ def resolve(connection_id="dedicated"):
     data = values(connection_id)
     if not data["base_url"]:
         raise client.EcoHashError(
-            "Dedicated inference URL not configured. Open EcoHash connections, or set "
-            "ECOHASH_DEDICATED_BASE_URL / [dedicated] base_url, including the API prefix (for example /v1)."
+            f"Connection '{connection_id}' has no API URL. Select your saved connection in the node's Connection selector, "
+            "or open EcoHash connections and save an API URL for this connection (for example https://api.ecohash.com/v1)."
         )
     client._validate_http_url(data["base_url"], base_url=True)
     key = data["api_key"]
@@ -165,7 +179,7 @@ def save_connection(connection_id, payload):
             if field == "name" and (not value or len(value) > 100):
                 raise client.EcoHashError("Connection name must contain 1–100 characters.")
             if field == "base_url":
-                value = value.rstrip("/")
+                value = normalize_base_url(value)
                 if connection_id == "public":
                     if value != client.BASE_URL:
                         raise client.EcoHashError("The public EcoHash API URL is fixed. Create a dedicated connection for another service.")

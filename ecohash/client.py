@@ -113,6 +113,22 @@ def _raise_for_status(resp, endpoint=None) -> None:
             429: "Dedicated inference rate limited (429). Wait a moment and retry.",
         }
         message = messages.get(resp.status_code, f"Dedicated inference API error {resp.status_code}.")
+        if resp.status_code in (400, 405, 409, 422, 500, 502, 503):
+            # Show validation reasons, never arbitrary response dumps or request
+            # payloads. Invalid endpoint parameters should be actionable.
+            try:
+                payload = resp.json()
+            except ValueError:
+                payload = None
+            detail = None
+            if isinstance(payload, dict):
+                detail = payload.get("detail") or payload.get("error") or payload.get("message")
+                if isinstance(detail, dict):
+                    detail = detail.get("message")
+                elif isinstance(detail, list):
+                    detail = "; ".join(item["msg"] for item in detail if isinstance(item, dict) and isinstance(item.get("msg"), str))
+            if isinstance(detail, str) and detail.strip():
+                message += " " + detail.replace(endpoint.api_key, "[REDACTED]")[:400]
         if 300 <= resp.status_code < 400:
             message = "Dedicated inference redirected the request. Configure the final API base_url directly."
         if resp.status_code in (401, 403):
@@ -128,7 +144,7 @@ def _raise_for_status(resp, endpoint=None) -> None:
     raise EcoHashError(message)
 
 
-def _request(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None, allow_redirects=None):
+def _request(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None, allow_redirects=None, params=None):
     key = endpoint.api_key if endpoint is not None else load_api_key()
     base_url = endpoint.base_url if endpoint is not None else BASE_URL
     if timeout is None:
@@ -138,6 +154,7 @@ def _request(method: str, path: str, *, json_body=None, data=None, files=None, t
         resp = requests.request(
             method, base_url + path,
             json=json_body, data=data, files=files, headers=headers, timeout=timeout,
+            **({"params": params} if params is not None else {}),
             **({"allow_redirects": allow_redirects} if allow_redirects is not None else
                {"allow_redirects": False} if endpoint is not None else {}),
         )

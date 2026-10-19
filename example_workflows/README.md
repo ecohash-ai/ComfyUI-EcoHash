@@ -11,9 +11,9 @@ Configure credentials in the **EcoHash** sidebar / **Connections** dialog before
 - `tts_voiceover.json`: public TTS → Preview Audio.
 - `text_to_video.json`: public text-to-video → Save Video (with audio).
 - `dedicated_text_to_video.json`: dedicated text-to-video → Save Video. Select a connection,
-  exact served model ID and protocol. For native SGLang MiniMax-H3 choose `minimax_h3`;
-  its 768p profile and native audio are handled automatically. Existing job IDs resume
-  polling/download instead of submitting a new generation.
+  exact served model ID, duration and size. No protocol configuration is needed; the service
+  handles model adaptation. Existing job IDs under Advanced settings resume polling/download
+  instead of submitting a new generation. Native-only containers need a service-side adapter.
 - `dedicated_enhance_then_generate.json`: Dedicated LLM → Dedicated Image Generate → Preview Image.
 - `dedicated_describe_and_regenerate.json`: Load Image → Dedicated VLM Describe → Dedicated Image Generate → Preview Image.
 - `dedicated_tts_voiceover.json`: Dedicated TTS → Preview Audio. Replace both model and voice placeholders.

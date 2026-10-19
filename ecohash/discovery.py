@@ -25,17 +25,24 @@ def _normalize_model(model):
     steps = model.get("default_image_steps")
     if isinstance(steps, int) and not isinstance(steps, bool) and steps > 0:
         result["default_image_steps"] = steps
-    for key in ("supported_sizes", "voices", "input_modalities", "output_modalities"):
+    for key in ("supported_sizes", "supported_resolutions", "voices", "input_modalities", "output_modalities", "supported_features", "supported_sampling_parameters"):
         items = model.get(key)
         if isinstance(items, list):
             result[key] = [item for item in items if isinstance(item, str)]
+    maximum = model.get("video_max_duration_seconds")
+    if isinstance(maximum, int) and not isinstance(maximum, bool) and maximum > 0:
+        result["video_max_duration_seconds"] = maximum
+    if isinstance(model.get("openai_compatible"), bool):
+        result["openai_compatible"] = model["openai_compatible"]
     return result
 
 
 def _private_models(endpoint):
     # A 404 on /models proves that a server responded, not that credentials or the
     # image routes are valid. Keep that distinction visible to the user.
-    response = client._request("GET", "/models", endpoint=endpoint, timeout=min(endpoint.timeout, 10))
+    # EcoLink defaults to chat-only. Ask for the whole catalog; standard
+    # OpenAI servers may ignore the optional category parameter.
+    response = client._request("GET", "/models", endpoint=endpoint, params={"category": "all"}, timeout=min(endpoint.timeout, 10))
     try:
         payload = response.json()
     except ValueError:

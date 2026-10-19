@@ -33,7 +33,12 @@ class DedicatedNode:
     def IS_CHANGED(cls, **kwargs):
         # Credential changes must invalidate cached inference without exposing the
         # secret in ComfyUI's cache metadata or workflow JSON.
-        endpoint = client.load_dedicated_endpoint(kwargs.get("connection", "dedicated"))
+        connection = kwargs.get("connection", "dedicated")
+        try:
+            endpoint = client.load_dedicated_endpoint(connection)
+        except client.EcoHashError:
+            # Validation below reports the selected connection before execution.
+            return f"unconfigured:{connection}"
         settings = json.dumps([endpoint.base_url, endpoint.api_key, endpoint.timeout])
         return hashlib.sha256(settings.encode()).hexdigest()
 
@@ -43,4 +48,8 @@ class DedicatedNode:
         # connection ID does not exist on the recipient's ComfyUI server.
         if connection not in connections.connection_ids(dedicated_only=True):
             return f"Connection '{connection}' is not configured. Open EcoHash connections and add or map that connection ID."
+        try:
+            client.load_dedicated_endpoint(connection)
+        except client.EcoHashError as exc:
+            return str(exc)
         return True

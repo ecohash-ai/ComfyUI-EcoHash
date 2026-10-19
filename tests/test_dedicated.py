@@ -42,7 +42,7 @@ def test_dedicated_file_and_blank_env(monkeypatch):
 
 def test_missing_dedicated_url_does_not_use_public_default(monkeypatch):
     monkeypatch.setenv("ECOHASH_API_KEY", "public_secret")
-    with pytest.raises(client.EcoHashError, match="ECOHASH_DEDICATED_BASE_URL"):
+    with pytest.raises(client.EcoHashError, match="Connection 'dedicated'.*Select your saved connection"):
         client.load_dedicated_endpoint()
 
 

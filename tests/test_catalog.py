@@ -102,3 +102,32 @@ def test_snapshot_read_failure_returns_empty(monkeypatch):
     # Verify model_ids converts empty list to placeholder
     monkeypatch.setattr(catalog, "schema_catalog", lambda: [])
     assert catalog.model_ids("any_category") == ["(catalog unavailable)"]
+
+
+def test_video_sizes_follow_live_pricing_bands_without_model_name_rules():
+    _fresh()
+    models = MagicMock()
+    models.json.return_value = [{"model_id": "newly-added-video", "category": "video", "video_max_duration_seconds": 30}]
+    pricing = MagicMock()
+    pricing.json.return_value = [
+        {"model_id": "newly-added-video", "has_video_input": False, "resolution_band": "1440p"},
+        {"model_id": "newly-added-video", "has_video_input": False, "resolution_band": "2160p"},
+        {"model_id": "newly-added-video", "has_video_input": False, "resolution_band": "480_720p"},
+        {"model_id": "newly-added-video", "has_video_input": True, "resolution_band": "other-input-band"},
+    ]
+    with patch.object(catalog.requests, "get", side_effect=[models, pricing]) as get:
+        result = catalog.get_catalog(force_refresh=True)
+    assert result[0]["supported_resolutions"] == ["480p", "720p", "1440p", "2160p"]
+    assert result[0]["video_max_duration_seconds"] == 30
+    assert get.call_args.args == (catalog.VIDEO_PRICING_URL,)
+    assert "headers" not in get.call_args.kwargs
+
+
+def test_unavailable_video_pricing_does_not_invent_model_capabilities():
+    _fresh()
+    models = MagicMock()
+    models.json.return_value = [{"model_id": "newly-added-video", "category": "video"}]
+    with patch.object(catalog.requests, "get", side_effect=[models, OSError("offline")]):
+        result = catalog.get_catalog(force_refresh=True)
+    assert "supported_resolutions" not in result[0]
+    assert catalog.status()["source"] == "live"

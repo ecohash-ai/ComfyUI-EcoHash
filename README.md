@@ -64,14 +64,18 @@ After updating the plugin, restart the ComfyUI server and refresh the browser.
 Open the **EcoHash** cloud tab in the sidebar, click **Connections** (Chinese: **连接设置**) on any EcoHash
 node, or use **Extensions → EcoHash → EcoHash connections**.
 
-1. For public models (A), select `public`, enter your EcoHash key and **Save**.
-2. For dedicated models (B), configure `dedicated` or **Add connection**. Give it a stable
-   ID (for example `studio`), display name, API prefix URL, key and timeout.
-3. Click **Test connection**. This only queries `/models`; it does not generate an image.
-   A successful model-list response verifies that request. A server without `/models` is
-   shown as reachable with authentication/inference support still unverified.
-4. Use **Refresh models** to discover models. Dedicated nodes also accept manual model IDs.
-5. Select a connection and model in your workflow, enter the prompt and run.
+1. For public models (A), select `public`, enter your EcoHash key and **Save and connect**.
+2. For dedicated models (B), click **Add connection**, enter a display name, API URL and
+   key, then **Save and connect**. Connection IDs are generated automatically; stable IDs
+   and request timeouts remain available under **Advanced connection settings**.
+3. Saving checks the model list without running inference. When opened from a dedicated
+   node, the manager also applies the saved connection to that node. A service without
+   `/models` is reported as reachable, with authentication/inference still unverified.
+4. Choose a discovered model in the node, or choose **Enter model ID manually**. A single
+   discovered model fills an empty selection. Changing the connection clears the previous
+   model; refreshing the catalog preserves an existing model ID for explicit remapping.
+5. Enter the prompt and generation settings, connect an output node and run. Use **Refresh
+   models** after changing the deployment or platform catalog. No protocol selector is needed.
 
 **Generate test image** is a separate action requiring a model ID and explicit confirmation
 before making a real, potentially billable generation request. Its preview appears in the manager.
@@ -148,8 +152,8 @@ and voices when supplied by the service. Unknown private-model capabilities rema
 Image nodes offer landscape/portrait presets and `custom` dimensions (multiples of 16, 64–8192
 per side). Width/height appear only in custom mode; the model must support the requested size.
 LLM's system prompt appears only in custom mode. TTS lists voices when provided by the service;
-otherwise enter a model-specific voice ID. Switching away from Kokoro clears its `af_bella`
-default unless the new model supplies voice choices.
+otherwise enter a model-specific voice ID. Switching models selects a declared voice when
+available, or clears the previous voice so it can be entered explicitly.
 
 ComfyUI caches node outputs — re-queueing an identical graph returns cached results without a new
 API call; change any input (e.g. seed) to force a fresh call.
@@ -162,7 +166,7 @@ The node library has two groups under **EcoHash**: **Public Models** and **Dedic
 cover all supported model types: image generation/editing,
 LLM, vision-language description, video, TTS and STT. They call separately deployed models. The public
 nodes continue to use the public EcoHash API (A), so both can be used in the same workflow.
-Dedicated nodes accept a free-text model ID and do not consult the public model catalog.
+Dedicated nodes discover deployed model IDs and also accept a free-text ID. They do not require registration in the public model catalog.
 
 Add the following to your local, git-ignored `config.ini` (also see `config.ini.example`):
 
@@ -183,7 +187,7 @@ export ECOHASH_DEDICATED_TIMEOUT="300"
 
 Nonempty environment values override saved UI settings, which override INI values. Timeout is in seconds
 and defaults to 300. `base_url` must include the service's actual API prefix: `/v1` is **not**
-added automatically. Trailing slashes are removed; a prefix such as `/deployments/my-model/v1`
+added automatically. A copied full generation endpoint is normalized to its API prefix. Trailing slashes are removed; a prefix such as `/deployments/my-model/v1`
 is preserved. The dedicated key is independent of `ECOHASH_API_KEY`; there is no fallback to
 the public key. Neither the endpoint nor its key is stored in node widgets or workflow JSON.
 
@@ -230,7 +234,7 @@ routes needed by their model type; they do not need to implement every route:
   `language`, and WAV `file`; return `{"text": "..."}` JSON.
 
 Image, chat and speech nodes report HTTP 202 jobs as unsupported. Video nodes implement
-the asynchronous protocols below.
+the asynchronous lifecycle below.
 Other response schemas, authentication schemes, and deployment-routing headers also require
 an adapter. API requests do not follow redirects; configure the final API base URL directly.
 LoRA, ControlNet and other deployment-specific parameters are not exposed by these nodes yet.
@@ -264,30 +268,41 @@ is required. The node downloads an MP4 to ComfyUI's temporary directory; Save Vi
 to the output directory. These nodes support **text-to-video**; models requiring image/audio/video
 references need a separate reference-input adapter.
 
-The public node uses `POST /video/generations`, then `GET /video/jobs/{id}` and the returned
-download URL. Configure model, prompt, duration, aspect ratio, resolution and audio generation.
-Dedicated nodes add a `protocol` choice matching the selected deployment:
+No node or connection exposes a protocol setting. The public node calls the EcoHash video
+API (`/video/generations` and `/video/jobs/{id}`). The dedicated node uses the platform's
+standard video contract (`/videos`, `/videos/{id}`, `/videos/{id}/content`). Wire formats are
+internal implementation details, independent of model names.
 
-| Protocol | Submit / poll | Settings |
-| --- | --- | --- |
-| `ecohash` | JSON `/video/generations` → `/video/jobs/{id}` | Resolution, aspect ratio, duration, audio |
-| `openai` | Multipart `/videos` → `/videos/{id}` → `/videos/{id}/content` | Width/height and seconds; optional steps/seed only when supported by the deployment |
-| `minimax_h3` | Native SGLang JSON `/videos` → `/videos/{id}` → `/videos/{id}/content` | `task=t2va`, empty conditions, 768-pixel short edge, aspect ratio, requested duration, 50 steps by default; native audio |
+Dedicated generation sends only `model`, `prompt`, `seconds` and `size`. The service owns
+model-native parameters and default steps, frame rate, seeds, audio generation and provider
+adaptation. Any audio in the returned MP4 is preserved. Public generation additionally offers
+the gateway's audio option. Choose duration, aspect ratio and resolution; dedicated nodes
+also support **custom** width/height. Duration limits come from model metadata where available.
+Public resolution choices use `/platform/video-pricing` bands without reference-video input.
+Those bands describe priced resolutions; the service still validates actual model support.
+Missing capability metadata is shown as unknown. Common size presets are conveniences,
+not assertions that a model supports them.
 
-For **instance 247**, add a connection named `minimax-h3-247` with API prefix
-`https://api.ecohash.com/inference-instances/247/proxy/v1` and your instance-authorized key.
-Select this connection, protocol `minimax_h3`, and model **`/mnt/shared/MiniMaxAI/MiniMax-H3`**.
-The gateway model ID **`/mnt/shared/MiniMaxAI/MiniMax-H3:247`** is valid in the authenticated
-model list, but the supplied unified `/v1/video/generations` route returned 404 in the real check;
-the native proxy route successfully generated video. Do not add the suffix when calling the
-already instance-scoped proxy. See [the real test record](tests/MINIMAX_247_RESULTS.md).
-The exact H3 payload follows [SGLang's native video contract](https://github.com/sgl-project/sglang/blob/main/docs/cookbook/diffusion/MiniMax/MiniMax-H3.mdx).
+Model discovery uses `/platform/models` for public models and authenticated
+`/models?category=all` for dedicated connections (EcoLink otherwise defaults to chat-only).
+Filtering follows declared categories and input/output modalities, never model-name patterns.
+Unclassified models remain selectable with an unverified capability hint. Model IDs and
+configured API prefixes are sent unchanged; the plugin does not infer instance routing.
+
+**Deployment compatibility:** an endpoint exposing a `/videos` route is not by itself proof
+that its create payload implements the platform contract. A container that needs native
+JSON parameters requires a service-side adapter. The previous instance-247 test used such a
+native request; it does not validate the simplified node's new-generation contract. See the
+historical [verification record](tests/MINIMAX_247_RESULTS.md) and current
+[configuration and EcoLink audit](docs/CONFIGURATION_AUDIT.md). There are no per-model native
+adapters in this plugin. Old video workflows migrate field values and links; retired native
+workflows display a compatibility reminder. Their old protocol/steps/seed fields are removed.
 
 Video submission accepts HTTP 200 or 202 and **never automatically retries a POST**. The node
 shows the job ID and status in **Video task**, also logs the ID on the server, and returns it
 as a STRING output. `wait_timeout` (default 1800 seconds) limits waiting for completion;
 the connection timeout limits each request. To recover after a timeout or interruption, paste
-the ID into `job_id` and keep the same connection/protocol. This resumes polling and download
+the ID into `job_id` under **Advanced settings**, keeping the same connection. This resumes polling and download
 without another generation. Clear `job_id` to generate a new video. Stopping ComfyUI only stops
 local waiting; the remote job may continue. Signed result URLs and content redirects are fetched
 without forwarding the inference key. Downloads are limited to 512 MiB per video.
@@ -341,12 +356,11 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 **安装**：在 ComfyUI-Manager 中搜索 "EcoHash" 安装，或将本仓库 `git clone` 到
 `ComfyUI/custom_nodes/` 目录下，然后 `pip install -r requirements.txt`。
 
-**界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **Connections / 连接设置**。
-公共模型选择 `public` 并保存密钥；专属模型配置 `dedicated` 或添加具名连接。先保存，再测试连接、
-刷新模型。连接检测不生成图片；测试出图需要单独勾选确认，将发送实际生成请求。
-语言模型可用独立的“测试文本”入口，也需单独确认；TTS/STT 在工作流中连接音频节点验证。
-密钥只保存在服务端 `connections.json`，不会写进工作流，读取配置接口也不会返回密钥。
-环境变量和 `config.ini` 仍可使用，优先级为：环境变量 → 界面设置 → `config.ini`。
+**界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **连接设置**。
+公共模型选择 `public` 并保存密钥；专有模型添加连接，填写显示名称、API 地址和密钥，点击
+**保存并连接**。从节点打开设置时会直接绑定该连接，再选择已发现的模型或手动填写 ID。
+连接 ID 自动生成，超时放在高级设置中；连接检查只读取模型列表。
+语言、图像的实际推理测试需另行确认；TTS/STT 在工作流中连接音频节点验证。
 
 **专属推理（B）**：在 `config.ini` 添加 `[dedicated]`，配置 `base_url`、`api_key` 和可选的
 `timeout`（秒，默认 300）；也可使用 `ECOHASH_DEDICATED_BASE_URL`、`ECOHASH_DEDICATED_API_KEY`
@@ -361,12 +375,11 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 图像、聊天和语音接口；视频节点支持异步提交、任务查询和 MP4 下载，详见上方 Video generation。
 
 **视频**：新增 **EcoHash 视频生成 / 专属视频生成**，输出 `VIDEO` 接“保存视频”，保留音轨。
-支持文生视频；需要参考图、参考音频或参考视频的模型尚未接入。专属节点按实际服务选择
-`ecohash`、`openai` 或 `minimax_h3` 协议；仅显示该协议的有效参数。
-247 实例使用 API 前缀 `https://api.ecohash.com/inference-instances/247/proxy/v1`，
-模型填 `/mnt/shared/MiniMaxAI/MiniMax-H3`（原生代理不带 `:247`），协议选 `minimax_h3`。
-“已有任务 ID”留空会生成；填写原任务 ID 则只恢复查询和下载，不会重新提交。任务等待超时默认
-1800 秒，独立于连接的单次请求超时。ComfyUI 中断不会自动取消远端任务。
+支持文生视频；需要参考图、参考音频或参考视频的模型尚未接入。
+无需选择或配置接口协议。选择连接和模型后，填写提示词、时长和尺寸即可；模型能力、时长上限
+和公共模型的分辨率档位从服务端读取，不按 Seedance、MiniMax、Wan 或 LTX 等名称分类。
+步数、帧率等由平台管理。专有模型可选自定义宽高；已有任务 ID 和等待超时在高级设置中。
+旧版原生视频实例仍需服务端提供兼容接口，不能仅凭模型 ID 保证支持。
 
 **参数和帮助**：`size=custom` 时显示宽高；LLM 的 `custom` 模式才显示系统提示词。
 节点库的 EcoHash 下分为“公共模型”和“专有模型”两个分组，每组各包含 7 个节点。

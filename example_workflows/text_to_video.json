@@ -34,35 +34,26 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "EcoHashVideoGenerate"
+        "Node name for S&R": "EcoHashVideoGenerate",
+        "ecohash_video_schema": 3
       },
       "widgets_values": [
-        "ecolink-video-gen-2.0",
+        "YOUR_PUBLIC_VIDEO_MODEL_ID",
         "A small orange cat turns toward the camera in a rainy neon alley, natural motion and ambient rain.",
         4,
         "16:9",
         "720p",
         true,
-        1280,
-        720,
-        0,
-        42,
-        "fixed",
         "",
         1800
       ],
       "widgets_values_named": {
-        "model": "ecolink-video-gen-2.0",
+        "model": "YOUR_PUBLIC_VIDEO_MODEL_ID",
         "prompt": "A small orange cat turns toward the camera in a rainy neon alley, natural motion and ambient rain.",
         "duration": 4,
         "aspect_ratio": "16:9",
         "resolution": "720p",
         "generate_audio": true,
-        "width": 1280,
-        "height": 720,
-        "steps": 0,
-        "seed": 42,
-        "control_after_generate": "fixed",
         "job_id": "",
         "wait_timeout": 1800
       }
@@ -123,7 +114,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "## EcoHash text to video\n\nConfigure the connection in the EcoHash sidebar before running. VIDEO → Save Video preserves the MP4 audio track.\n\nLeave job_id blank for a new generation. To resume a task after a timeout/interruption, paste its ID from Video task or the server log; keep the original connection and protocol. Interrupting ComfyUI stops local waiting, not the remote job.\n\nUses EcoHash /video/generations and /video/jobs/{id}. Choose a model that supports text-to-video. Reference-dependent models are not supported by this text-only example."
+        "## EcoHash text to video\n\nSelect a connection and an available text-to-video model, then enter your prompt, duration and size. Model capabilities come from the service; common size presets do not guarantee support. VIDEO → Save Video preserves any returned MP4 audio.\n\nNo protocol configuration is needed. Native deployment adaptation belongs to the service. Models requiring reference media need a workflow supporting those inputs.\n\nAdvanced settings: leave job_id blank for a new generation, or enter an existing ID to resume without another submission. Keep the same connection. Interrupting ComfyUI stops local waiting, not the remote job."
       ]
     }
   ],

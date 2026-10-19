@@ -32,6 +32,32 @@ def test_blank_key_keeps_secret_and_renaming_keeps_id():
     assert connections.resolve("studio").timeout == 60
 
 
+@pytest.mark.parametrize("suffix", ["images/generations", "images/edits", "chat/completions", "audio/speech", "audio/transcriptions", "video/generations", "videos"])
+def test_copied_operation_urls_are_normalized_to_the_existing_api_prefix(suffix):
+    save(base_url=f"https://private.example/tenant/v1/{suffix}/")
+    assert connections.resolve("studio").base_url == "https://private.example/tenant/v1"
+
+
+def test_unconfigured_connection_is_reported_before_execution():
+    node = image_nodes.EcoHashDedicatedImageGenerate
+    assert node.IS_CHANGED(connection="dedicated") == "unconfigured:dedicated"
+    assert "Select your saved connection" in node.VALIDATE_INPUTS(connection="dedicated")
+    save("dedicated")
+    assert node.VALIDATE_INPUTS(connection="dedicated") is True
+    assert node.IS_CHANGED(connection="dedicated") != "unconfigured:dedicated"
+
+
+@pytest.mark.parametrize("model_id", ["MiniMaxAI/MiniMax-H3:247", "seedance-next", "wan3-next", "ltx-next"])
+def test_discovery_never_guesses_capabilities_from_model_names(model_id):
+    assert discovery._normalize_model({"id": model_id}) == {"id": model_id, "name": model_id}
+    declared = discovery._normalize_model({"id": model_id, "category": "video", "video_max_duration_seconds": 30,
+        "supported_resolutions": ["1440p"], "openai_compatible": True})
+    assert declared["category"] == "video"
+    assert declared["video_max_duration_seconds"] == 30
+    assert declared["supported_resolutions"] == ["1440p"]
+    assert declared["openai_compatible"] is True
+
+
 def test_settings_override_ini_and_environment_overrides_settings(monkeypatch):
     client.CONFIG_PATH.write_text("[ecohash]\napi_key=ini-public\n[dedicated]\nbase_url=https://ini.example/v1\napi_key=ini-dedicated\n")
     connections.save_connection("public", {"api_key": "ui-public"})
@@ -122,6 +148,7 @@ def test_discovery_understands_openai_models_and_metadata():
     assert first["models"][0] == {"id": "image-private", "name": "image-private", "category": "image", "supports_image_edit": True}
     assert second["source"] == "cache"
     request.assert_called_once()
+    assert request.call_args.kwargs["params"] == {"category": "all"}
     assert request.call_args.args == ("GET", "https://private.example/v1/models")
 
 

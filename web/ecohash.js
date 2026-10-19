@@ -1,8 +1,8 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionHint, connectionOptions, isDedicated, localizedText, modelsForNode, replaceOptions, setWidgetVisible } from "./helpers.mjs?v=connections-7";
+import { capabilityHint, connectionHint, connectionOptions, defaultConnection, isDedicated, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-11";
 
-const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map() };
+const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map(), preferred: null };
 let profilesRequest;
 const widget = (node, name) => node.widgets?.find((item) => item.name === name);
 const nodeType = (node) => node.comfyClass || node.type;
@@ -18,6 +18,9 @@ function uiLocale() {
 const uiText = (text) => localizedText(text, uiLocale());
 const manualModel = uiText("Enter model ID manually / 手动填写模型 ID");
 const manualVoice = uiText("Enter voice ID manually / 手动填写音色 ID");
+const chooseModel = uiText("Select a model / 请选择模型");
+const chooseConnection = uiText("Select a connection / 请选择连接");
+const connectionLabel = (profile) => `${profile.name} (${profile.id})`;
 
 function element(tag, text, className) {
     const item = document.createElement(tag);
@@ -50,7 +53,10 @@ async function loadModels(id, refresh = false) {
     const version = (state.versions.get(id) || 0) + 1;
     state.versions.set(id, version);
     const pending = request(`/models/${encodeURIComponent(id)}${refresh ? "?refresh=1" : ""}`).then((result) => {
-        if (state.versions.get(id) === version) state.models.set(id, result);
+        if (state.versions.get(id) === version) {
+            state.models.set(id, result);
+            if (id !== "public" && result.discovery_supported) state.checked.set(id, { message: "Connected and authenticated. No inference request was sent." });
+        }
         return result;
     }).finally(() => { if (state.requests.get(id) === pending) state.requests.delete(id); });
     state.requests.set(id, pending);
@@ -69,38 +75,54 @@ function updateNode(node) {
     const connection = widget(node, "connection");
     if (connection) connection.options.values = replaceOptions(connection.options.values, connectionOptions(state.connections, connection.value));
     const id = connectionId(node);
+    const connectionPicker = widget(node, "Select connection");
+    if (connectionPicker) {
+        const ready = state.connections.filter((p) => p.id !== "public" && p.configured);
+        const current = state.connections.find((p) => p.id === id);
+        connectionPicker.options.values = replaceOptions(connectionPicker.options.values, [...(current?.configured ? [] : [chooseConnection]), ...ready.map(connectionLabel)]);
+        connectionPicker.value = current?.configured ? connectionLabel(current) : chooseConnection;
+        setVisible(node, "connection", false);
+    }
     const model = widget(node, "model");
     const result = state.models.get(id);
     const models = modelsForNode(result?.models || [], type);
+    if (isDedicated(type) && model && result && !node._ehManualModel) model.value = singleModel(models, model.value);
     if (model && !isDedicated(type) && result) {
         // Preserve current selections when catalogs change; never silently choose another model.
         model.options.values = replaceOptions(model.options.values, [...new Set([...models.map((item) => item.id), model.value].filter(Boolean))]);
     }
     const picker = widget(node, "Choose discovered model");
     if (picker) {
-        picker.options.values = replaceOptions(picker.options.values, [manualModel, ...models.map((item) => item.id)]);
-        picker.value = models.some((item) => item.id === model?.value) ? model.value : manualModel;
+        picker.options.values = replaceOptions(picker.options.values, [chooseModel, ...models.map((item) => item.id), manualModel]);
+        picker.value = node._ehManualModel ? manualModel : models.some((item) => item.id === model?.value) ? model.value : (model?.value ? manualModel : chooseModel);
+        setVisible(node, "model", node._ehManualModel || !!model?.value && !models.some((item) => item.id === model.value) || !!result && !models.length);
     }
     const selected = models.find((item) => item.id === model?.value);
     const voicePicker = widget(node, "Choose voice");
     if (voicePicker) {
+        if (!widget(node, "voice")?.value && !node._ehManualVoice && selected?.voices?.length) widget(node, "voice").value = selected.voices[0];
         voicePicker.options.values = replaceOptions(voicePicker.options.values, [manualVoice, ...(selected?.voices || [])]);
         const voice = widget(node, "voice")?.value;
         voicePicker.value = selected?.voices?.includes(voice) ? voice : manualVoice;
+        setVisible(node, "voice", node._ehManualVoice || !selected?.voices?.includes(voice));
     }
     const info = widget(node, "Model information");
     if (info) info.value = capabilityHint(selected, type, uiLocale());
     const status = widget(node, "Connection status");
     if (status) status.value = uiText(result?.error || state.checked.get(id)?.message || connectionHint(state.connections, id, uiLocale()));
     const isVideo = type.endsWith("VideoGenerate");
-    const protocol = widget(node, "protocol")?.value || "ecohash";
-    for (const name of ["width", "height"]) setVisible(node, name, isVideo ? protocol === "openai" : widget(node, "size")?.value === "custom");
+    for (const name of ["width", "height"]) setVisible(node, name, widget(node, isVideo ? "resolution" : "size")?.value === "custom");
     if (isVideo) {
-        for (const name of ["resolution", "generate_audio"]) setVisible(node, name, protocol === "ecohash");
-        for (const name of ["steps", "seed"]) setVisible(node, name, protocol !== "ecohash");
-        setVisible(node, "aspect_ratio", protocol !== "openai");
-        const seedControl = node.widgets?.find((item) => item.name === "control_after_generate");
-        setWidgetVisible(seedControl, protocol !== "ecohash");
+        for (const name of ["job_id", "wait_timeout"]) setVisible(node, name, !!node._ehAdvanced || name === "job_id" && !!widget(node, name)?.value);
+        setVisible(node, "aspect_ratio", widget(node, "resolution")?.value !== "custom");
+        const duration = widget(node, "duration");
+        if (duration) duration.options.max = selected?.video_max_duration_seconds || 86400;
+        const resolution = widget(node, "resolution");
+        if (resolution) resolution._ehDefaultValues ??= [...resolution.options.values];
+        if (resolution && selected?.supported_resolutions?.length) resolution.options.values = replaceOptions(resolution.options.values,
+            [...new Set([...selected.supported_resolutions, ...(isDedicated(type) ? ["custom"] : []), resolution.value])]);
+        else if (resolution) resolution.options.values = replaceOptions(resolution.options.values,
+            [...new Set([...resolution._ehDefaultValues, resolution.value])]);
     }
     setVisible(node, "system_prompt", widget(node, "mode")?.value === "custom");
     node.setDirtyCanvas?.(true, true);
@@ -112,6 +134,26 @@ function setVisible(node, name, visible) {
 
 function allNodes() {
     return app.graph?._nodes?.filter((node) => nodeType(node)?.startsWith("EcoHash")) || [];
+}
+
+async function applyConnection(node, id, resetModel = true) {
+    if (!isDedicated(nodeType(node))) return;
+    const connection = widget(node, "connection");
+    const changed = connection.value !== id;
+    connection.value = id;
+    if (changed && resetModel) {
+        widget(node, "model").value = "";
+        node._ehManualModel = false;
+        if (widget(node, "voice")) widget(node, "voice").value = "";
+    }
+    state.preferred = id;
+    updateNode(node);
+    await loadModels(id);
+    updateNode(node);
+}
+
+function selectedDedicatedNode() {
+    return Object.values(app.canvas?.selected_nodes || {}).find((node) => isDedicated(nodeType(node) || ""));
 }
 
 async function refreshNodes() {
@@ -130,7 +172,7 @@ function field(form, label, name, type = "text") {
     return input;
 }
 
-function mountManager(root, initialId = "public", close) {
+function mountManager(root, initialId = "public", close, contextNode = selectedDedicatedNode()) {
     root.classList.add("ecohash-manager");
     root.replaceChildren();
     if (close) {
@@ -140,6 +182,7 @@ function mountManager(root, initialId = "public", close) {
     }
     root.append(element("h2", "EcoHash connections / 连接"));
     root.append(element("p", "Configure a connection once, test it, then select its model in your workflow. / 配置连接并测试后，即可在工作流中选择模型。", "eh-muted"));
+    if (contextNode) root.append(element("p", "Saving applies this connection to the current node. / 保存后会将此连接应用到当前节点。", "eh-muted"));
     const chooser = element("select");
     chooser.setAttribute("aria-label", uiText("Connection / 连接"));
     const toolbar = element("div", undefined, "eh-row");
@@ -155,15 +198,18 @@ function mountManager(root, initialId = "public", close) {
     name.required = true;
     name.maxLength = 100;
     const url = field(form, "API base URL / API 前缀地址", "base_url", "url");
-    url.placeholder = "https://your-endpoint.example/v1";
+    url.placeholder = "https://api.ecohash.com/v1";
     const key = field(form, "API key / 密钥", "api_key", "password");
     const timeout = field(form, "Timeout in seconds / 超时（秒）", "timeout", "number");
     timeout.min = "0.1";
     timeout.step = "any";
+    const advanced = element("details");
+    advanced.append(element("summary", "Advanced connection settings / 高级连接设置"), id.parentElement, timeout.parentElement);
+    form.append(advanced);
     const source = element("p", undefined, "eh-muted");
     form.append(source);
     const actions = element("div", undefined, "eh-row");
-    const save = element("button", "Save / 保存", "eh-primary");
+    const save = element("button", "Save and connect / 保存并连接", "eh-primary");
     save.type = "submit";
     const test = element("button", "Test connection / 测试连接");
     test.type = "button";
@@ -238,9 +284,9 @@ function mountManager(root, initialId = "public", close) {
         }
         chooser.value = value;
         id.disabled = !create;
-        id.value = create && value === "__new__" ? "" : value;
+        id.value = create && value === "__new__" ? `connection-${crypto.randomUUID().slice(0, 8)}` : value;
         name.value = profile?.name || (value === "__new__" ? "" : value);
-        url.value = profile?.base_url || "";
+        url.value = profile?.base_url || (create ? "https://api.ecohash.com/v1" : "");
         key.value = "";
         timeout.value = profile?.timeout || "300";
         url.disabled = value === "public" || profile?.sources?.base_url === "environment";
@@ -249,6 +295,8 @@ function mountManager(root, initialId = "public", close) {
         key.placeholder = uiText(profile?.has_api_key ? "Configured — leave blank to keep / 已配置，留空保留" : "Enter API key / 输入密钥");
         source.textContent = Object.entries(profile?.sources || {}).filter(([, src]) => src === "environment").map(([field]) => uiText(`${field}: managed by environment / ${field}：由环境变量管理`)).join(" · ");
         models.replaceChildren();
+        detail.hidden = !!contextNode && !nodeType(contextNode).includes("Image");
+        textDetail.hidden = !!contextNode && !/LLM|VLM/u.test(nodeType(contextNode));
         consent.checked = false;
         modelInput.value = "";
         preview.hidden = true;
@@ -257,7 +305,7 @@ function mountManager(root, initialId = "public", close) {
         textModel.value = "";
         textPreview.hidden = true;
         textPreview.textContent = "";
-        message(create ? "Enter a stable connection ID. Shared workflows refer to this ID. / 工作流通过连接 ID 引用配置。" : profile?.message || "Connection is missing. Add it with this ID, or choose another connection in the workflow. / 缺少连接，请创建同名连接或在节点中重新选择。");
+        message(create ? "Enter a display name, API URL and key. The connection ID is generated automatically. / 填写显示名称、API 地址和密钥，连接 ID 已自动生成。" : state.checked.get(value)?.message || profile?.message || "Connection is missing. Add it with this ID, or choose another connection in the workflow. / 缺少连接，请创建同名连接或在节点中重新选择。");
         controls();
     }
     async function reload(preferred = selectedId) {
@@ -284,7 +332,7 @@ function mountManager(root, initialId = "public", close) {
         catch (error) { message(error.message, true); }
         finally { busy = false; controls(); }
     }
-    chooser.onchange = () => select(chooser.value);
+    chooser.onchange = () => { select(chooser.value); if (selectedId !== "public") state.preferred = selectedId; };
     add.onclick = () => select("__new__", true);
     form.onsubmit = (event) => {
         event.preventDefault();
@@ -300,8 +348,18 @@ function mountManager(root, initialId = "public", close) {
             key.value = "";
             invalidateModels(target);
             await reload(target);
+            if (target !== "public") state.preferred = target;
+            if (contextNode && isDedicated(nodeType(contextNode)) && allNodes().includes(contextNode) && target !== "public") await applyConnection(contextNode, target);
             await refreshNodes();
-            message(saved.configured ? "Saved. Test the connection next. / 已保存，请测试连接。" : saved.message);
+            if (!saved.configured) { message(saved.message, true); return; }
+            if (target === "public") {
+                const checked = await request(`/connections/${encodeURIComponent(target)}/test`, "POST", {});
+                state.checked.set(target, checked);
+            }
+            const result = await loadModels(target);
+            displayModels(result);
+            for (const node of allNodes()) updateNode(node);
+            message(result.error || "Saved and connected; models are ready. No inference request was sent. / 已保存并连接，模型已加载，未发送推理请求。");
         });
     };
     test.onclick = () => operation("Connecting… / 正在检测连接…", async () => {
@@ -310,9 +368,32 @@ function mountManager(root, initialId = "public", close) {
         for (const node of allNodes()) if (connectionId(node) === selectedId) updateNode(node);
         message(result.message);
     });
+    function displayModels(result) {
+        models.replaceChildren(...result.models.map((item) => {
+            const row = element("li", item.name === item.id ? item.id : `${item.name} — ${item.id}`);
+            if (contextNode && isDedicated(nodeType(contextNode)) === (selectedId !== "public") && modelsForNode([item], nodeType(contextNode)).length) {
+                const use = element("button", "Use on current node / 用于当前节点");
+                use.type = "button";
+                use.onclick = () => operation("Selecting model… / 正在选择模型…", async () => {
+                    await applyConnection(contextNode, selectedId);
+                    widget(contextNode, "model").value = item.id;
+                    contextNode._ehManualModel = false;
+                    updateNode(contextNode);
+                    message("Connection and model applied to the current node. / 连接和模型已应用到当前节点。");
+                });
+                row.append(use);
+            }
+            return row;
+        }));
+        const categories = result.models.map((m) => m.category);
+        if (categories.length && categories.every(Boolean)) {
+            detail.hidden = !!contextNode && !nodeType(contextNode).includes("Image") || !categories.includes("image");
+            textDetail.hidden = !!contextNode && !/LLM|VLM/u.test(nodeType(contextNode)) || !categories.some((c) => ["llm", "llm_vision"].includes(c));
+        }
+    }
     discover.onclick = () => operation("Loading models… / 正在读取模型…", async () => {
         const result = await loadModels(selectedId, true);
-        models.replaceChildren(...result.models.map((item) => element("li", `${item.name} — ${item.id}${item.supports_image_edit === true ? ` · ${uiText("image edit / 可编辑")}` : ""}`)));
+        displayModels(result);
         message(result.error || `Loaded ${result.models.length} models (${result.source}). / 已读取 ${result.models.length} 个模型。`);
         for (const node of allNodes()) updateNode(node);
     });
@@ -341,7 +422,7 @@ function mountManager(root, initialId = "public", close) {
     reload().catch((error) => message(error.message, true));
 }
 
-function showManager(id = "public") {
+function showManager(id = "public", node) {
     const existing = document.querySelector("dialog.ecohash-dialog");
     if (existing) { existing.focus(); return; }
     const dialog = element("dialog", undefined, "ecohash-dialog");
@@ -349,7 +430,7 @@ function showManager(id = "public") {
     const root = element("div");
     dialog.append(root);
     document.body.append(dialog);
-    mountManager(root, id, () => dialog.close());
+    mountManager(root, id, () => dialog.close(), node);
     dialog.onclose = () => dialog.remove();
     dialog.showModal();
 }
@@ -372,6 +453,7 @@ function addUiWidget(node, ...args) {
 
 app.registerExtension({
     name: "EcoHash.Connections",
+    beforeConfigureGraph(data) { migrateVideoWorkflow(data); },
     commands: [{ id: "EcoHash.ManageConnections", label: uiText("EcoHash connections / 连接设置"), function: () => showManager() }],
     menuCommands: [{ path: ["Extensions", "EcoHash"], commands: ["EcoHash.ManageConnections"] }],
     setup() {
@@ -379,12 +461,12 @@ app.registerExtension({
         style.rel = "stylesheet";
         style.href = new URL("./ecohash.css", import.meta.url).href;
         document.head.append(style);
-        app.extensionManager.registerSidebarTab({ id: "ecohash-connections", icon: "pi pi-cloud", title: "EcoHash", tooltip: uiText("EcoHash connections / 连接设置"), type: "custom", render: (root) => mountManager(root) });
+        app.extensionManager.registerSidebarTab({ id: "ecohash-connections", icon: "pi pi-cloud", title: "EcoHash", tooltip: uiText("EcoHash connections / 连接设置"), type: "custom", render: (root) => mountManager(root, state.preferred || "public") });
         loadProfiles().then(() => Promise.all([...new Set(allNodes().map(connectionId))].map((id) => loadModels(id).catch(() => null))))
             .then(() => allNodes().forEach(updateNode)).catch(() => {});
         let activeNode;
         function executionStatus(node, message) {
-            const status = widget(node, "Connection status");
+            const status = widget(node, "Execution status");
             if (status) status.value = uiText(message);
             node.setDirtyCanvas?.(true, true);
         }
@@ -426,18 +508,29 @@ app.registerExtension({
     nodeCreated(node) {
         const type = nodeType(node);
         if (!type?.startsWith("EcoHash")) return;
-        addUiWidget(node, "button", "Connections / 连接设置", null, () => showManager(connectionId(node)), { serialize: false });
-        if (isDedicated(type)) addUiWidget(node, "combo", "Choose discovered model", manualModel, (value) => {
-            if (value === manualModel) return;
+        if (type.endsWith("VideoGenerate")) { node.properties ??= {}; node.properties.ecohash_video_schema = 3; }
+        const primary = [];
+        if (isDedicated(type)) primary.push(addUiWidget(node, "combo", "Select connection", chooseConnection, async (label) => {
+            const profile = state.connections.find((p) => connectionLabel(p) === label);
+            if (!profile) return;
+            try { await applyConnection(node, profile.id); }
+            catch (error) { widget(node, "Connection status").value = error.message; }
+        }, { values: [chooseConnection], serialize: false }));
+        if (isDedicated(type)) primary.push(addUiWidget(node, "combo", "Choose discovered model", chooseModel, (value) => {
+            node._ehManualModel = value === manualModel;
+            if (value === manualModel || value === chooseModel) { updateNode(node); return; }
             const model = widget(node, "model");
             model.value = value;
             model.callback?.(value);
             updateNode(node);
-        }, { values: [manualModel], serialize: false });
+        }, { values: [chooseModel, manualModel], serialize: false }));
+        addUiWidget(node, "button", "Connections", null, () => showManager(connectionId(node), node), { serialize: false });
         if (type.endsWith("TTS")) addUiWidget(node, "combo", "Choose voice", manualVoice, (value) => {
+            node._ehManualVoice = value === manualVoice;
             if (value !== manualVoice) widget(node, "voice").value = value;
+            updateNode(node);
         }, { values: [manualVoice], serialize: false });
-        addUiWidget(node, "button", "Refresh models / 刷新模型", null, async () => {
+        addUiWidget(node, "button", "Refresh models", null, async () => {
             const status = widget(node, "Connection status");
             if (status) status.value = uiText("Loading models… / 正在读取模型…");
             try {
@@ -448,40 +541,52 @@ app.registerExtension({
             } catch (error) { if (status) status.value = error.message; }
             node.setDirtyCanvas?.(true, true);
         }, { serialize: false });
-        for (const name of ["Connection status", "Model information"]) {
+        for (const name of ["Connection status", "Model information", "Execution status"]) {
             const item = addUiWidget(node, "text", name, "", () => {}, { serialize: false });
             item.options.read_only = true;
         }
         if (type.endsWith("VideoGenerate")) {
+            addUiWidget(node, "toggle", "Advanced settings", false, (value) => { node._ehAdvanced = value; updateNode(node); }, { serialize: false });
             const task = addUiWidget(node, "text", "Video task", uiText("Job ID appears here after submission; copy it to job_id to resume. / 提交后显示任务 ID；复制到 job_id 可恢复查询。"), () => {}, { serialize: false });
             task.options.read_only = true;
         }
-        const labels = { "Choose discovered model": "选择已发现的模型", "Choose voice": "选择音色", "Connection status": "连接状态", "Model information": "模型信息", "Video task": "视频任务" };
+        // UI-only selectors may move without changing serialized core-widget order.
+        node.widgets = [...primary, ...node.widgets.filter((item) => !primary.includes(item))];
+        const labels = { "Connections": "连接设置", "Refresh models": "刷新模型", "Select connection": "连接", "Choose discovered model": "模型", "Choose voice": "音色", "Connection status": "连接状态", "Model information": "模型信息", "Video task": "视频任务", "Advanced settings": "高级设置", "Execution status": "运行状态" };
         for (const item of node.widgets || []) {
             if (item.options?.serialize === false) {
                 item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);
             }
         }
         hookWidget(node, "connection", async () => {
-            if (type.endsWith("TTS")) widget(node, "voice").value = "";
-            updateNode(node);
-            widget(node, "Connection status").value = uiText("Loading models… / 正在读取模型…");
-            try { await loadModels(connectionId(node)); updateNode(node); }
+            try { await applyConnection(node, connectionId(node), false); }
             catch (error) { widget(node, "Connection status").value = error.message; }
         });
         hookWidget(node, "model", () => {
             if (type.endsWith("TTS")) {
                 const selected = state.models.get(connectionId(node))?.models?.find((item) => item.id === widget(node, "model")?.value);
                 if (selected?.voices?.length) widget(node, "voice").value = selected.voices[0];
-                else if (widget(node, "model").value !== "kokoro-82m" && widget(node, "voice").value === "af_bella") widget(node, "voice").value = "";
+                else widget(node, "voice").value = "";
             }
             updateNode(node);
         });
-        for (const name of ["mode", "size", "protocol"]) hookWidget(node, name, () => updateNode(node));
+        for (const name of ["mode", "size", "resolution"]) hookWidget(node, name, () => updateNode(node));
         const configured = node.onConfigure;
-        node.onConfigure = function (...args) { configured?.apply(this, args); updateNode(this); };
+        node.onConfigure = function (...args) {
+            this._ehRestored = true;
+            configured?.apply(this, args);
+            updateNode(this);
+            if (this.properties?.ecohash_migration_warning) widget(this, "Execution status").value = uiText("Migrated native workflow: verify the deployment supports the platform video API before generating. / 已迁移原生视频工作流：生成前需确认实例支持平台的视频生成接口。");
+        };
         updateNode(node);
-        loadProfiles().then(() => loadModels(connectionId(node))).then(() => updateNode(node)).catch((error) => {
+        loadProfiles().then(async () => {
+            const preferred = isDedicated(type) && !node._ehRestored ? defaultConnection(state.connections, state.preferred) : null;
+            if (preferred) {
+                const result = await loadModels(preferred);
+                if (!node._ehRestored && (!result.models.length || modelsForNode(result.models, type).length)) await applyConnection(node, preferred);
+            } else await loadModels(connectionId(node));
+            updateNode(node);
+        }).catch((error) => {
             const status = widget(node, "Connection status");
             if (status) status.value = error.message;
         });

@@ -76,7 +76,7 @@ def video_server():
 
 
 def _body(protocol):
-    return video.build_request(protocol, "private/h3", "a cat in the rain", 4, "16:9", "720p", True, 50, 42)
+    return video.build_request(protocol, "private/model", "a cat in the rain", 4, "16:9", "720p", True, 50, 42)
 
 
 @pytest.mark.parametrize("protocol", video.PROTOCOLS)
@@ -97,9 +97,6 @@ def test_async_submit_poll_download_and_auth_isolation(protocol, video_server, t
     if protocol == "openai":
         assert records[0]["form"]["seconds"] == "4"
         assert records[0]["form"]["size"] == "1280x720"
-    elif protocol == "minimax_h3":
-        assert records[0]["json"]["target"] == {"short_edge": 768, "aspect_ratio": "16:9", "duration_seconds": 4.0}
-        assert not {"fps", "num_frames", "size", "extra_params"} & records[0]["json"].keys()
     else:
         assert records[0]["json"]["duration"] == 4
         assert records[0]["path"] == "/private/v1/video/generations"
@@ -117,7 +114,7 @@ def test_public_video_uses_public_key_and_download_has_no_auth(video_server, tmp
 def test_resume_performs_no_post(video_server, tmp_path):
     base, records, _ = video_server
     endpoint = client.DedicatedEndpoint(base + "/v1", "private-key", 5)
-    video.generate(protocol="minimax_h3", body={}, job_id="job-123", endpoint=endpoint,
+    video.generate(protocol="openai", body={}, job_id="job-123", endpoint=endpoint,
                    output_dir=tmp_path, poll_interval=0)
     assert all(r["method"] == "GET" for r in records)
 
@@ -129,7 +126,7 @@ def test_failed_or_invalid_status_keeps_job_id_and_never_resubmits(status, messa
     config["status"] = status
     endpoint = client.DedicatedEndpoint(base + "/v1", "private-key", 5)
     with pytest.raises(client.EcoHashError, match=message) as error:
-        video.generate(protocol="minimax_h3", body=_body("minimax_h3"), endpoint=endpoint,
+        video.generate(protocol="openai", body=_body("openai"), endpoint=endpoint,
                        output_dir=tmp_path, poll_interval=0)
     assert "Job ID: job-123" in str(error.value)
     assert "private-key" not in str(error.value)
@@ -141,7 +138,7 @@ def test_timeout_reports_resumable_job(video_server, tmp_path):
     base, records, config = video_server
     config["status"] = "processing"
     with pytest.raises(client.EcoHashError, match="Timed out.*Job ID: job-123"):
-        video.generate(protocol="minimax_h3", body={}, job_id="job-123", wait_timeout=1,
+        video.generate(protocol="openai", body={}, job_id="job-123", wait_timeout=1,
                        endpoint=client.DedicatedEndpoint(base + "/v1", "private-key", 5),
                        output_dir=tmp_path, poll_interval=0.1)
     assert all(r["method"] == "GET" for r in records)
@@ -157,7 +154,7 @@ def test_interrupt_stops_polling_without_another_submission(video_server, tmp_pa
             raise InterruptedError("stop")
 
     with pytest.raises(InterruptedError):
-        video.generate(protocol="minimax_h3", body=_body("minimax_h3"), check_interrupt=check,
+        video.generate(protocol="openai", body=_body("openai"), check_interrupt=check,
                        endpoint=client.DedicatedEndpoint(base + "/v1", "private-key", 5),
                        output_dir=tmp_path, poll_interval=0)
     assert sum(r["method"] == "POST" for r in records) == 1
@@ -167,7 +164,7 @@ def test_invalid_download_is_removed_and_can_be_resumed(video_server, tmp_path):
     base, _, config = video_server
     config["blob"] = b"<html>wrong route</html>"
     with pytest.raises(client.EcoHashError, match="valid MP4.*Job ID: job-123"):
-        video.generate(protocol="minimax_h3", body={}, job_id="job-123",
+        video.generate(protocol="openai", body={}, job_id="job-123",
                        endpoint=client.DedicatedEndpoint(base + "/v1", "private-key", 5),
                        output_dir=tmp_path, poll_interval=0)
     assert not list(tmp_path.glob("*.mp4"))
@@ -180,12 +177,65 @@ def test_resume_rejects_path_injection(job, tmp_path, monkeypatch):
         video.generate(protocol="openai", body={}, job_id=job, output_dir=tmp_path)
 
 
-def test_native_h3_default_profile_and_protocol_specific_parameters():
-    body = video.build_request("minimax_h3", "model", "prompt", 4, "9:16", "720p", False)
-    assert body["num_inference_steps"] == 50
-    assert body["target"] == {"short_edge": 768, "aspect_ratio": "9:16", "duration_seconds": 4.0}
-    assert not {"generate_audio", "resolution", "fps", "seed"} & body.keys()
-    assert video.build_request("ecohash", "model", "prompt", 4, "16:9", "480p", False)["generate_audio"] is False
+@pytest.mark.parametrize("model", ["MiniMaxAI/MiniMax-H3:247", "seedance-next", "wan3-next", "ltx-next", "future/unknown-video"])
+def test_model_ids_never_select_native_parameters(model):
+    body = video.build_request("openai", model, "prompt", 8, "16:9", "720p", True, 50, 42)
+    assert body == {"model": model, "prompt": "prompt", "seconds": "8", "size": "1280x720"}
+
+
+def test_standard_video_dimensions_come_from_resolution_and_aspect_ratio():
+    assert video.dimensions("720p", "16:9") == (1280, 720)
+    assert video.dimensions("1080p", "9:16") == (1080, 1920)
+    assert video.dimensions("4k", "1:1") == (2160, 2160)
+
+
+def test_video_schema_exposes_no_protocol_and_preserves_private_custom_sizes():
+    from ecohash_nodes.video_nodes import EcoHashDedicatedVideoGenerate, EcoHashVideoGenerate
+    for node in (EcoHashDedicatedVideoGenerate, EcoHashVideoGenerate):
+        schema = node.INPUT_TYPES()
+        assert "protocol" not in schema["required"] | schema["optional"]
+    assert "width" not in EcoHashVideoGenerate.INPUT_TYPES()["optional"]
+    assert "custom" in EcoHashDedicatedVideoGenerate.INPUT_TYPES()["required"]["resolution"][0]
+
+
+def test_new_resolution_metadata_is_not_rejected_by_a_static_combo():
+    from ecohash import connections
+    from ecohash_nodes.video_nodes import EcoHashDedicatedVideoGenerate, EcoHashVideoGenerate
+    connections.save_connection("studio", {"base_url": "https://private.example/v1", "api_key": "private-key"})
+    assert EcoHashVideoGenerate.VALIDATE_INPUTS(resolution="1440p") is True
+    assert EcoHashDedicatedVideoGenerate.VALIDATE_INPUTS(resolution="1440p", connection="studio") is True
+    assert "no API URL" in EcoHashDedicatedVideoGenerate.VALIDATE_INPUTS(resolution="1440p")
+    width, height = video.dimensions("1440p", "16:9")
+    assert video.build_request("openai", "future-video", "cat", 30, "16:9", "1440p", True,
+                               width=width, height=height)["size"] == "2560x1440"
+
+
+def test_stale_workflow_fields_cannot_override_standard_transport_or_rewrite_endpoint(monkeypatch, tmp_path):
+    import sys
+    import types
+    from ecohash import connections
+    from ecohash_nodes.video_nodes import EcoHashDedicatedVideoGenerate
+
+    connections.save_connection("studio", {"base_url": "https://api.ecohash.com/v1", "api_key": "private-key"})
+    fake_video = types.SimpleNamespace(get_dimensions=lambda: (1344, 768))
+    monkeypatch.setitem(sys.modules, "folder_paths", types.SimpleNamespace(get_temp_directory=lambda: str(tmp_path)))
+    monkeypatch.setitem(sys.modules, "comfy_api", types.ModuleType("comfy_api"))
+    monkeypatch.setitem(sys.modules, "comfy_api.input_impl", types.SimpleNamespace(VideoFromFile=lambda path: fake_video))
+    monkeypatch.setitem(sys.modules, "comfy", types.ModuleType("comfy"))
+    monkeypatch.setitem(sys.modules, "comfy.model_management", types.SimpleNamespace(throw_exception_if_processing_interrupted=lambda: None))
+    requests = []
+
+    def generate(**kwargs):
+        requests.append(kwargs)
+        return tmp_path / "result.mp4", "job-123"
+
+    monkeypatch.setattr(video, "generate", generate)
+    result = EcoHashDedicatedVideoGenerate().generate("MiniMaxAI/MiniMax-H3:247", "cat", 4, "16:9", "4k", False,
+        connection="studio", protocol="minimax_h3", width=1280, height=720, steps=50, seed=42)
+    assert result == (fake_video, "job-123")
+    assert requests[0]["protocol"] == "openai"
+    assert requests[0]["body"] == {"model": "MiniMaxAI/MiniMax-H3:247", "prompt": "cat", "seconds": "4", "size": "3840x2160"}
+    assert requests[0]["endpoint"].base_url == "https://api.ecohash.com/v1"
 
 
 def test_lost_submission_response_never_retries_a_potentially_billable_post(monkeypatch, tmp_path):
@@ -197,12 +247,16 @@ def test_lost_submission_response_never_retries_a_potentially_billable_post(monk
 
     monkeypatch.setattr(client.requests, "request", timeout)
     with pytest.raises(client.EcoHashError, match="No automatic resubmission"):
-        video.generate(protocol="minimax_h3", body=_body("minimax_h3"), output_dir=tmp_path,
+        video.generate(protocol="openai", body=_body("openai"), output_dir=tmp_path,
                        endpoint=client.DedicatedEndpoint("https://private.example/v1", "private-key"))
     assert len(calls) == 1
 
 
-@pytest.mark.parametrize("duration,ratio", [(3, "16:9"), (16, "16:9"), (4, "adaptive")])
-def test_invalid_native_parameters_are_rejected_before_submission(duration, ratio):
+@pytest.mark.parametrize("duration", [0, -1, True, 1.5, 86401])
+def test_invalid_duration_is_rejected_before_submission(duration):
     with pytest.raises(client.EcoHashError):
-        video.build_request("minimax_h3", "model", "prompt", duration, ratio, "720p", True)
+        video.build_request("openai", "model", "prompt", duration, "16:9", "720p", True)
+
+
+def test_duration_is_not_limited_to_a_particular_model_family():
+    assert video.build_request("openai", "future-model", "prompt", 30, "16:9", "720p", True)["seconds"] == "30"

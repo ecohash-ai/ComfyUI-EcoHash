@@ -1,5 +1,11 @@
 # MiniMax-H3 dedicated instance 247 — video verification
 
+> Historical verification: the native per-model adapter used below has been removed by the
+> configuration simplification. These successful generations do not verify new creation
+> through the current standard dedicated video node. Existing jobs still support resume.
+> See `../docs/CONFIGURATION_AUDIT.md` for the EcoLink routing and capability gaps.
+
+
 - Date: 2026-10-19
 - Branch: `feat/dedicated-inference`
 - User-supplied gateway ID: `/mnt/shared/MiniMaxAI/MiniMax-H3:247`.

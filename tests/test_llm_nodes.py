@@ -150,3 +150,13 @@ def test_vlm_describe_raises_on_empty_choices():
         with pytest.raises(EcoHashError, match="no completion"):
             node.describe(image=img, model="glm-5.2",
                           prompt="Describe this image.", max_tokens=512)
+def test_vision_model_choices_use_declared_image_input(monkeypatch):
+    from ecohash_nodes.llm_nodes import EcoHashVLMDescribe
+    from ecohash import catalog
+    monkeypatch.setattr(catalog, "schema_catalog", lambda: [
+        {"model_id": "new-multimodal-model", "category": "llm", "input_modalities": ["text", "image"]},
+        {"model_id": "plain-chat", "category": "llm", "input_modalities": ["text"]},
+        {"model_id": "vision-model", "category": "llm_vision"},
+        {"model_id": "image-generator", "category": "image", "input_modalities": ["text", "image"]},
+    ])
+    assert EcoHashVLMDescribe.INPUT_TYPES()["required"]["model"][0] == ["new-multimodal-model", "vision-model"]

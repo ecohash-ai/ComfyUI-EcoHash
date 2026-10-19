@@ -10,11 +10,22 @@ import requests
 
 from . import client
 
-PROTOCOLS = ["ecohash", "openai", "minimax_h3"]
+PROTOCOLS = ["ecohash", "openai"]
 RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
 RESOLUTIONS = ["480p", "720p", "768p", "1080p", "4k"]
 _PENDING = {"queued", "pending", "processing", "in_progress", "running"}
 _MAX_BYTES = 512 * 1024 * 1024
+
+
+def dimensions(resolution, aspect_ratio):
+    # These are size-label conventions, not a model compatibility table.
+    match = re.fullmatch(r"([1-9][0-9]*)(p|k)", str(resolution).lower())
+    if not match or not re.fullmatch(r"[1-9][0-9]*:[1-9][0-9]*", str(aspect_ratio)):
+        raise client.EcoHashError("Use a resolution such as 720p and a numeric aspect ratio such as 16:9, or choose custom size.")
+    short_edge = int(match[1]) * (540 if match[2] == "k" else 1)
+    x, y = map(int, aspect_ratio.split(":"))
+    # Use ordinary OpenAI sizes at the common 720p/1080p 16:9 shapes.
+    return round(short_edge * x / min(x, y)), round(short_edge * y / min(x, y))
 
 
 def _job_id(value):
@@ -26,40 +37,19 @@ def _job_id(value):
 def build_request(protocol, model, prompt, duration, aspect_ratio, resolution, generate_audio,
                   steps=0, seed=-1, width=1280, height=720):
     if protocol not in PROTOCOLS:
-        raise client.EcoHashError("Select the video API protocol: ecohash, openai or minimax_h3.")
+        raise client.EcoHashError("Unsupported video transport. Dedicated services must implement the OpenAI Videos API.")
     if not isinstance(model, str) or not model.strip() or not isinstance(prompt, str) or not prompt.strip():
         raise client.EcoHashError("Enter a model ID and a nonempty video prompt.")
-    if isinstance(duration, bool) or not isinstance(duration, int) or not 4 <= duration <= 15:
-        raise client.EcoHashError("Video duration must be an integer from 4 to 15 seconds, supported by the selected model.")
+    if isinstance(duration, bool) or not isinstance(duration, int) or not 1 <= duration <= 86400:
+        raise client.EcoHashError("Video duration must be a positive integer in seconds, supported by the selected model.")
     body = {"model": model.strip(), "prompt": prompt.strip()}
     if protocol == "openai":
-        if any(isinstance(v, bool) or not isinstance(v, int) or not 128 <= v <= 4096 or v % 16 for v in (width, height)):
-            raise client.EcoHashError("Video width and height must be multiples of 16 between 128 and 4096.")
+        if any(isinstance(v, bool) or not isinstance(v, int) or not 128 <= v <= 8192 for v in (width, height)):
+            raise client.EcoHashError("Video width and height must be between 128 and 8192, supported by the selected model.")
         body.update(seconds=str(duration), size=f"{width}x{height}")
     else:
-        if aspect_ratio not in RATIOS:
-            raise client.EcoHashError("Select a supported video aspect ratio.")
-        if protocol == "ecohash":
-            if resolution not in RESOLUTIONS or resolution == "768p":
-                raise client.EcoHashError("EcoHash video resolution must be 480p, 720p, 1080p or 4k; 768p is the MiniMax-H3 native profile.")
-            body.update(duration=duration, aspect_ratio=aspect_ratio, resolution=resolution, generate_audio=bool(generate_audio))
-        else:
-            # SGLang H3 derives its canonical 24 fps temporal shape from target.
-            # Explicit fps, num_frames and generic size fields are rejected.
-            body.update(seconds=duration, task="t2va", conditions=[],
-                        target={"short_edge": 768, "aspect_ratio": aspect_ratio, "duration_seconds": float(duration)},
-                        num_outputs_per_prompt=1, flow_shift=12.0, audio_flow_shift=3.0)
-    if protocol != "ecohash":
-        if isinstance(steps, bool) or not isinstance(steps, int) or not 0 <= steps <= 100:
-            raise client.EcoHashError("Video steps must be 0 (server default) through 100.")
-        if isinstance(seed, bool) or not isinstance(seed, int) or not -1 <= seed < 2**31:
-            raise client.EcoHashError("Video seed must be -1 (random) through 2147483647.")
-        if steps:
-            body["num_inference_steps"] = steps
-        elif protocol == "minimax_h3":
-            body["num_inference_steps"] = 50
-        if seed >= 0:
-            body["seed"] = seed
+        # The gateway owns model-native defaults, limits and provider adaptation.
+        body.update(duration=duration, aspect_ratio=aspect_ratio, resolution=resolution, generate_audio=bool(generate_audio))
     return body
 
 
@@ -178,4 +168,4 @@ def generate(*, protocol, body, output_dir, endpoint=None, job_id="", wait_timeo
         progress(job_id, "completed", 100)
         return target, job_id
     except client.EcoHashError as exc:
-        raise client.EcoHashError(f"{exc} Job ID: {job_id}. To resume without a new submission, paste it into job_id and keep the same connection and protocol.") from None
+        raise client.EcoHashError(f"{exc} Job ID: {job_id}. To resume without a new submission, paste it into job_id and keep the same connection.") from None

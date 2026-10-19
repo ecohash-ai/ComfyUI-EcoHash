@@ -1,12 +1,14 @@
 """EcoHash model catalog: live fetch (public endpoint) with packaged snapshot fallback."""
 
 import json
+import re
 import time
 from pathlib import Path
 
 import requests
 
 CATALOG_URL = "https://api.ecohash.com/platform/models"
+VIDEO_PRICING_URL = "https://api.ecohash.com/platform/video-pricing"
 SNAPSHOT_PATH = Path(__file__).resolve().parent / "catalog_snapshot.json"
 _TTL_SECONDS = 300
 
@@ -46,6 +48,30 @@ def get_catalog(force_refresh: bool = False) -> list:
         source = "stale" if _CACHE["data"] is not None else "snapshot"
         _CACHE.update({"data": data, "ts": now, "source": source, "error": "Catalog unavailable; using cached models. Retry refresh when connectivity is restored."})
         return data
+    if any(m.get("category") == "video" for m in data):
+        # EcoLink prices/gates video by resolution band. Read the public matrix
+        # once per catalog refresh rather than maintaining a model-name table.
+        try:
+            pricing = requests.get(VIDEO_PRICING_URL, timeout=5)
+            pricing.raise_for_status()
+            tiers = pricing.json()
+            if not isinstance(tiers, list):
+                raise ValueError("Expected video tiers")
+            bands = {}
+            for tier in tiers:
+                if not isinstance(tier, dict) or tier.get("has_video_input") is not False:
+                    continue
+                model_id, band = tier.get("model_id"), tier.get("resolution_band")
+                if isinstance(model_id, str) and isinstance(band, str) and band:
+                    # Same wire convention as EcoLink's resolutionOptionsFromTiers:
+                    # the coarse price key is not itself a request resolution.
+                    bands.setdefault(model_id, []).extend(["480p", "720p"] if band == "480_720p" else [band])
+            def height(label):
+                match = re.fullmatch(r"(\d+)(p|k)", label, re.IGNORECASE)
+                return int(match[1]) * (540 if match[2].lower() == "k" else 1) if match else float("inf")
+            data = [{**m, **({"supported_resolutions": sorted(set(bands[m["model_id"]]), key=height)} if m.get("model_id") in bands else {})} for m in data]
+        except (requests.RequestException, OSError, ValueError):
+            pass  # Missing tier metadata stays unknown, not a compatibility guess.
     _CACHE.update({"data": data, "ts": now, "source": "live", "error": None})
     return data
 

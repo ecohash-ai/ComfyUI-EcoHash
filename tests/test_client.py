@@ -56,6 +56,19 @@ def test_request_json_maps_errors(monkeypatch, status, fragment):
             client.request_json("GET", "/models")
 
 
+@pytest.mark.parametrize("payload", [
+    {"detail": "size is unsupported; secret-key"},
+    {"error": {"message": "size is unsupported; secret-key", "internal": "do not expose"}},
+    {"detail": [{"msg": "size is unsupported; secret-key", "input": "do not expose"}]},
+])
+def test_dedicated_validation_errors_explain_failure_without_echoing_keys(payload):
+    endpoint = client.DedicatedEndpoint("https://private.example/v1", "secret-key")
+    with pytest.raises(client.EcoHashError, match="size is unsupported") as error:
+        client._raise_for_status(_mock_response(400, payload), endpoint)
+    assert "secret-key" not in str(error.value)
+    assert "do not expose" not in str(error.value)
+
+
 def test_request_bytes_returns_content(monkeypatch):
     monkeypatch.setenv("ECOHASH_API_KEY", "eco_k")
     with patch.object(client.requests, "request") as mock_req:

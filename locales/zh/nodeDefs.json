@@ -279,18 +279,6 @@
       "generate_audio": {
         "name": "生成音轨"
       },
-      "width": {
-        "name": "宽度（OpenAI 协议）"
-      },
-      "height": {
-        "name": "高度（OpenAI 协议）"
-      },
-      "steps": {
-        "name": "步数（原生接口）"
-      },
-      "seed": {
-        "name": "种子（原生接口）"
-      },
       "job_id": {
         "name": "已有任务 ID（留空生成）"
       },
@@ -301,16 +289,13 @@
   },
   "EcoHashDedicatedVideoGenerate": {
     "display_name": "EcoHash 专属视频生成",
-    "description": "文生视频：提交异步任务、等待完成并下载 MP4，保留音轨。VIDEO 输出连接“保存视频”。填写已有任务 ID 可继续查询，不会重新生成。 专属节点按服务选择协议；MiniMax-H3 使用 minimax_h3 原生接口。",
+    "description": "选择连接和模型后生成视频，模型参数由平台管理。VIDEO 输出连接“保存视频”，保留返回 MP4 的音轨。填写已有任务 ID 可继续查询，不会重新生成。",
     "inputs": {
       "model": {
         "name": "模型 ID"
       },
       "prompt": {
         "name": "提示词"
-      },
-      "protocol": {
-        "name": "接口协议"
       },
       "duration": {
         "name": "时长（秒）"
@@ -321,20 +306,11 @@
       "resolution": {
         "name": "分辨率"
       },
-      "generate_audio": {
-        "name": "生成音轨"
-      },
       "width": {
-        "name": "宽度（OpenAI 协议）"
+        "name": "自定义宽度"
       },
       "height": {
-        "name": "高度（OpenAI 协议）"
-      },
-      "steps": {
-        "name": "步数（原生接口）"
-      },
-      "seed": {
-        "name": "种子（原生接口）"
+        "name": "自定义高度"
       },
       "job_id": {
         "name": "已有任务 ID（留空生成）"
