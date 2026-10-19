@@ -1,5 +1,14 @@
 export const isDedicated = (type) => type.startsWith("EcoHashDedicated");
 
+export function isEcoHashUrl(value) {
+    try {
+        if (typeof value !== "string" || /\s/u.test(value.trim())) return false;
+        const url = new URL(value.trim());
+        return url.protocol === "https:" && url.hostname === "api.ecohash.com" && !url.port &&
+            !url.username && !url.password && !url.search && !url.hash;
+    } catch { return false; }
+}
+
 export function defaultConnection(profiles, preferred) {
     const ready = profiles.filter((p) => p.id !== "public" && p.configured);
     if (ready.some((p) => p.id === preferred)) return preferred;
@@ -79,7 +88,7 @@ export function localizedText(value, locale = "en") {
     const separator = value.indexOf(" / ");
     if (separator < 0 || !/[\u3400-\u9fff]/u.test(value.slice(separator + 3))) return value;
     const translated = chinese ? value.slice(separator + 3) : value.slice(0, separator);
-    return chinese && value.startsWith("EcoHash ") ? `EcoHash ${translated}` : translated;
+    return chinese && value.startsWith("EcoHash ") && !translated.startsWith("EcoHash") ? `EcoHash ${translated}` : translated;
 }
 
 export function modelsForNode(models, type) {

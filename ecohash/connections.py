@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import tempfile
 import threading
+from urllib.parse import urlsplit
 
 from . import client
 
@@ -15,6 +16,16 @@ _LOCK = threading.RLock()
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}\Z")
 BUILTINS = {"public": "EcoHash public API", "dedicated": "Default dedicated endpoint"}
 _OPERATION_PATHS = ("/images/generations", "/images/edits", "/chat/completions", "/audio/transcriptions", "/audio/speech", "/video/generations", "/videos")
+
+
+def uses_global_key(base_url):
+    """Only the exact EcoHash HTTPS origin may receive the account key."""
+    try:
+        client._validate_http_url(base_url, base_url=True)
+        parsed = urlsplit(base_url)
+        return parsed.scheme == "https" and parsed.hostname == "api.ecohash.com" and parsed.port in (None, 443)
+    except (client.EcoHashError, ValueError):
+        return False
 
 
 def normalize_base_url(value, *, validate=True):
@@ -91,6 +102,9 @@ def values(connection_id):
             raise client.EcoHashError(f"Invalid {field} in connection '{connection_id}'.")
         result[field], sources[field] = str(value).strip(), source
     result["base_url"] = normalize_base_url(result["base_url"], validate=False)
+    if connection_id != "public" and uses_global_key(result["base_url"]):
+        result["api_key"] = values("public")["api_key"]
+        sources["api_key"] = "global"
     result["sources"] = sources
     return result
 
@@ -115,7 +129,10 @@ def resolve(connection_id="dedicated"):
     client._validate_http_url(data["base_url"], base_url=True)
     key = data["api_key"]
     if not key or key in ("YOUR_DEDICATED_KEY_HERE", "eco_YOUR_KEY_HERE"):
-        hint = "Set ECOHASH_DEDICATED_API_KEY or [dedicated] api_key." if connection_id == "dedicated" else "Open EcoHash connections and configure its API key."
+        if connection_id == "public" or uses_global_key(data["base_url"]):
+            hint = "Set the global EcoHash API Key in EcoHash settings, ECOHASH_API_KEY or [ecohash] api_key."
+        else:
+            hint = "Set ECOHASH_DEDICATED_API_KEY or [dedicated] api_key." if connection_id == "dedicated" else "Open EcoHash connections and configure its endpoint key under Advanced connection settings."
         raise client.EcoHashAuthError(f"Connection '{connection_id}' API key not found. {hint}")
     return client.DedicatedEndpoint(data["base_url"], key, _timeout(data["timeout"]), connection_id)
 
@@ -130,6 +147,7 @@ def summary(connection_id):
     return {
         "id": connection_id, "name": data["name"], "base_url": data["base_url"],
         "timeout": data["timeout"], "has_api_key": bool(data["api_key"] and data["api_key"] not in ("YOUR_DEDICATED_KEY_HERE", "eco_YOUR_KEY_HERE")),
+        "uses_global_key": connection_id == "public" or uses_global_key(data["base_url"]),
         "sources": data["sources"], "configured": configured, "message": message,
         "builtin": connection_id in BUILTINS,
         "can_delete": connection_id not in BUILTINS and not client._read_config().has_section(f"connection:{connection_id}"),
@@ -190,6 +208,15 @@ def save_connection(connection_id, payload):
             if field == "timeout":
                 value = _timeout(value)
             record[field] = value
+        # EcoHash connections reference the global credential, never a copy.
+        config = client._read_config()
+        section = "dedicated" if connection_id == "dedicated" else f"connection:{connection_id}"
+        env_url = os.environ.get("ECOHASH_DEDICATED_BASE_URL", "").strip() if connection_id == "dedicated" else ""
+        effective_url = env_url or record.get("base_url", config.get(section, "base_url", fallback=""))
+        if connection_id != "public" and uses_global_key(normalize_base_url(effective_url, validate=False)):
+            if str(payload.get("api_key", "")).strip():
+                raise client.EcoHashError("EcoHash connections use the global API Key. Save it once in EcoHash settings instead of on a connection.")
+            record.pop("api_key", None)
         store[connection_id] = record
         _write_store(store)
     return summary(connection_id)

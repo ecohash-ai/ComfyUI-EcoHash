@@ -1,4 +1,4 @@
-"""Shared connection selection and cache invalidation for dedicated nodes."""
+"""Server-side credential cache invalidation and dedicated connection selection."""
 
 import hashlib
 import json
@@ -20,6 +20,16 @@ def model_id(model):
     if not model:
         raise client.EcoHashError("Enter the deployed model ID in the dedicated node's model field.")
     return model
+
+
+class PublicNode:
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        try:
+            key = client.load_api_key()
+        except client.EcoHashError:
+            return "unconfigured:global"
+        return hashlib.sha256(key.encode()).hexdigest()
 
 
 class DedicatedNode:

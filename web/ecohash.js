@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionOptions, defaultConnection, isDedicated, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-13";
+import { capabilityHint, connectionOptions, defaultConnection, isDedicated, isEcoHashUrl, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-15";
 
 const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map(), preferred: null };
 let profilesRequest;
@@ -198,8 +198,17 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         button.onclick = close;
         root.append(button);
     }
-    root.append(element("h2", "EcoHash connections / 连接"));
-    root.append(element("p", "Configure a connection once, test it, then select its model in your workflow. / 配置连接并测试后，即可在工作流中选择模型。", "eh-muted"));
+    root.append(element("h2", "EcoHash settings / 设置"));
+    root.append(element("p", "Configure your EcoHash API Key once for public models and dedicated EcoHash instances. / 配置一次 EcoHash API Key，公共模型和 EcoHash 专有实例共用。", "eh-muted"));
+    const globalForm = element("form");
+    const globalKey = field(globalForm, "EcoHash API Key / 全局 API Key", "global_api_key", "password");
+    const globalSave = element("button", "Save and verify API Key / 保存并验证 API Key", "eh-primary");
+    globalSave.type = "submit";
+    const globalStatus = element("p", undefined, "eh-muted");
+    globalStatus.setAttribute("role", "status");
+    globalStatus.setAttribute("aria-live", "polite");
+    globalForm.append(globalSave, globalStatus);
+    root.append(globalForm, element("h3", "Model connections / 模型连接"));
     if (contextNode) root.append(element("p", "Saving applies this connection to the current node. / 保存后会将此连接应用到当前节点。", "eh-muted"));
     const chooser = element("select");
     chooser.setAttribute("aria-label", uiText("Connection / 连接"));
@@ -217,12 +226,12 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     name.maxLength = 100;
     const url = field(form, "API base URL / API 前缀地址", "base_url", "url");
     url.placeholder = "https://api.ecohash.com/v1";
-    const key = field(form, "API key / 密钥", "api_key", "password");
+    const key = field(form, "Endpoint API key / 端点独立密钥", "api_key", "password");
     const timeout = field(form, "Timeout in seconds / 超时（秒）", "timeout", "number");
     timeout.min = "0.1";
     timeout.step = "any";
     const advanced = element("details");
-    advanced.append(element("summary", "Advanced connection settings / 高级连接设置"), id.parentElement, timeout.parentElement);
+    advanced.append(element("summary", "Advanced connection settings / 高级连接设置"), id.parentElement, timeout.parentElement, key.parentElement);
     form.append(advanced);
     const source = element("p", undefined, "eh-muted");
     form.append(source);
@@ -243,7 +252,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     status.setAttribute("aria-live", "polite");
     const models = element("ul", undefined, "eh-models");
     root.append(status, models);
-    root.append(element("p", "API keys stay on the ComfyUI server. Blank key fields keep the current key. Environment variables override saved settings, which override config.ini. / 密钥保存在服务端；留空保留原密钥。优先级：环境变量 → 界面设置 → config.ini。", "eh-muted"));
+    root.append(element("p", "Keys stay on the ComfyUI server. EcoHash HTTPS connections use the global key; other endpoints use their own key in Advanced connection settings. / 密钥保存在 ComfyUI 服务端。EcoHash 官方 HTTPS 连接共用全局 Key，其他端点在高级设置中配置独立密钥。", "eh-muted"));
     const detail = element("details");
     detail.append(element("summary", "Generate a test image / 测试出图"));
     const modelInput = field(detail, "Generation model ID / 生成模型 ID", "test_model");
@@ -279,15 +288,34 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     const message = (text, error = false) => { status.textContent = uiText(text); status.dataset.error = String(error); };
     function controls() {
         save.disabled = busy;
+        globalSave.disabled = busy;
         chooser.disabled = busy;
         add.disabled = busy;
         test.disabled = discover.disabled = busy || dirty || creating;
         remove.disabled = busy || dirty || creating || !state.connections.find((item) => item.id === selectedId)?.can_delete;
         generate.disabled = busy || dirty || creating || !consent.checked || !modelInput.value.trim();
         complete.disabled = busy || dirty || creating || !textConsent.checked || !textModel.value.trim();
-        form.inert = detail.inert = textDetail.inert = busy;
+        form.inert = globalForm.inert = detail.inert = textDetail.inert = busy;
     }
-    form.oninput = () => { dirty = true; message("Unsaved changes. Save before testing. / 配置有修改，请先保存再测试。"); controls(); };
+    function globalKeyControls() {
+        const profile = state.connections.find((item) => item.id === "public");
+        globalKey.disabled = profile?.sources?.api_key === "environment";
+        globalKey.required = !profile?.has_api_key;
+        globalKey.placeholder = uiText(profile?.has_api_key ? "Configured — leave blank to keep / 已配置，留空保留" : "Enter EcoHash API Key / 输入 EcoHash API Key");
+        globalSave.textContent = uiText(globalKey.disabled ? "Verify API Key / 验证 API Key" : "Save and verify API Key / 保存并验证 API Key");
+        globalStatus.textContent = uiText(globalKey.disabled ? "Managed by ECOHASH_API_KEY. / 由 ECOHASH_API_KEY 环境变量管理。" : profile?.has_api_key ? "API Key configured; shared by all EcoHash connections. / API Key 已配置，所有 EcoHash 官方连接共用。" : "Enter your EcoHash API Key to get started. / 请先填写 EcoHash API Key。");
+    }
+    function connectionKeyControls() {
+        const profile = state.connections.find((item) => item.id === selectedId);
+        const global = selectedId === "public" || isEcoHashUrl(url.value);
+        key.parentElement.hidden = global;
+        key.disabled = global || profile?.sources?.api_key === "environment";
+        key.required = !key.disabled && !(profile && !profile.uses_global_key && profile.has_api_key);
+        if (key.required) advanced.open = true;
+        source.textContent = [global ? uiText("Uses the global EcoHash API Key. / 使用上方统一配置的全局 API Key。") : "",
+            ...Object.entries(profile?.sources || {}).filter(([, src]) => src === "environment").map(([field]) => uiText(`${field}: managed by environment / ${field}：由环境变量管理`))].filter(Boolean).join(" · ");
+    }
+    form.oninput = () => { dirty = true; connectionKeyControls(); message("Unsaved changes. Save before testing. / 配置有修改，请先保存再测试。"); controls(); };
     consent.onchange = modelInput.oninput = controls;
     textConsent.onchange = textModel.oninput = controls;
     function select(value, create = false) {
@@ -308,10 +336,13 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         key.value = "";
         timeout.value = profile?.timeout || "300";
         url.disabled = value === "public" || profile?.sources?.base_url === "environment";
-        key.disabled = profile?.sources?.api_key === "environment";
         timeout.disabled = value === "public" || profile?.sources?.timeout === "environment";
-        key.placeholder = uiText(profile?.has_api_key ? "Configured — leave blank to keep / 已配置，留空保留" : "Enter API key / 输入密钥");
-        source.textContent = Object.entries(profile?.sources || {}).filter(([, src]) => src === "environment").map(([field]) => uiText(`${field}: managed by environment / ${field}：由环境变量管理`)).join(" · ");
+        name.parentElement.hidden = url.parentElement.hidden = advanced.hidden = save.hidden = value === "public";
+        name.required = value !== "public";
+        url.required = value !== "public";
+        advanced.open = false;
+        key.placeholder = uiText(profile?.has_api_key && !profile.uses_global_key ? "Configured — leave blank to keep / 已配置，留空保留" : "Enter endpoint API key / 输入端点独立密钥");
+        connectionKeyControls();
         models.replaceChildren();
         detail.hidden = !!contextNode && !nodeType(contextNode).includes("Image");
         textDetail.hidden = !!contextNode && !/LLM|VLM/u.test(nodeType(contextNode));
@@ -323,11 +354,12 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         textModel.value = "";
         textPreview.hidden = true;
         textPreview.textContent = "";
-        message(create ? "Enter a display name, API URL and key. The connection ID is generated automatically. / 填写显示名称、API 地址和密钥，连接 ID 已自动生成。" : state.checked.get(value)?.message || profile?.message || "Connection is missing. Add it with this ID, or choose another connection in the workflow. / 缺少连接，请创建同名连接或在节点中重新选择。");
+        message(create ? "Enter a display name and API URL. EcoHash connections use the global API Key. / 填写显示名称和 API 地址，EcoHash 官方连接自动使用全局 API Key。" : state.checked.get(value)?.message || profile?.message || "Connection is missing. Add it with this ID, or choose another connection in the workflow. / 缺少连接，请创建同名连接或在节点中重新选择。");
         controls();
     }
     async function reload(preferred = selectedId) {
         await loadProfiles();
+        globalKeyControls();
         chooser.replaceChildren(...state.connections.map((item) => {
             const option = element("option", `${item.name} (${item.id})`);
             option.value = item.id;
@@ -352,6 +384,34 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     }
     chooser.onchange = () => { select(chooser.value); if (selectedId !== "public") state.preferred = selectedId; };
     add.onclick = () => select("__new__", true);
+    globalForm.onsubmit = (event) => {
+        event.preventDefault();
+        if (!globalForm.reportValidity()) return;
+        operation("Verifying EcoHash API Key… / 正在验证 EcoHash API Key…", async () => {
+            try {
+                if (!globalKey.disabled && globalKey.value.trim()) await request("/connections/public", "PUT", { api_key: globalKey.value });
+                globalKey.value = "";
+                await loadProfiles();
+                globalKeyControls();
+                connectionKeyControls();
+                for (const profile of state.connections) if (profile.uses_global_key) invalidateModels(profile.id);
+                const checked = await request("/connections/public/test", "POST", {});
+                state.checked.set("public", checked);
+                const ids = new Set(allNodes().map(connectionId).filter((id) => state.connections.some((p) => p.id === id && p.uses_global_key)));
+                if (!creating && !dirty) ids.add(selectedId);
+                await Promise.all([...ids].map((id) => loadModels(id).catch((error) => {
+                    for (const node of allNodes()) if (connectionId(node) === id) modelError(node, error);
+                })));
+                for (const node of allNodes()) updateNode(node);
+                if (!creating && !dirty && state.models.has(selectedId)) displayModels(state.models.get(selectedId));
+                globalStatus.textContent = uiText("EcoHash API Key verified. No inference request was sent. / EcoHash API Key 验证通过，未发送推理请求。");
+                message(dirty ? "Unsaved connection changes are preserved. / 尚未保存的连接修改已保留。" : "EcoHash connections now use the global API Key. / EcoHash 官方连接已统一使用全局 API Key。");
+            } catch (error) {
+                globalStatus.textContent = uiText(error.message);
+                throw error;
+            }
+        });
+    };
     form.onsubmit = (event) => {
         event.preventDefault();
         if (!form.reportValidity()) return;

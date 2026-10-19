@@ -2,20 +2,23 @@
 ; Copy this file to config.ini and paste your key from https://docs.ecohash.com/getting-started/api-keys
 api_key = eco_YOUR_KEY_HERE
 
+; One global EcoHash key is shared by public models and dedicated EcoHash instances.
 ; Optional: dedicated inference (B). These settings apply only to Dedicated nodes.
 ; Include the API prefix exactly as your service exposes it; no /v1 is added.
 ; Do not put keys in node widgets or shared workflow JSON files.
 ; [dedicated]
-; base_url = https://YOUR_DEDICATED_HOST/v1
-; api_key = YOUR_DEDICATED_KEY_HERE
+; base_url = https://api.ecohash.com/inference-instances/INSTANCE_ID/proxy/v1
 ; timeout = 300
 
-; Optional named connections, selectable in all Dedicated nodes:
+; Optional independent endpoint, selectable in all Dedicated nodes:
 ; [connection:studio]
 ; name = Studio image model
 ; base_url = https://YOUR_OTHER_HOST/v1
 ; api_key = YOUR_DEDICATED_KEY_HERE
 ; timeout = 300
+
+; The global key is only sent to https://api.ecohash.com on the default HTTPS port.
+; Other origins require an independent api_key; they never inherit the global key.
 
 ; The EcoHash sidebar also manages connections without editing this file.
 ; Precedence per field: environment variable > connections.json > config.ini.

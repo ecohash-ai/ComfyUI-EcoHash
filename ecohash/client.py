@@ -12,14 +12,14 @@ BASE_URL = "https://api.ecohash.com/v1"
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.ini"
 
 _KEY_HELP = (
-    "EcoHash API key not found. Open the EcoHash connection manager from the sidebar or a node's Connections button. "
+    "EcoHash API key not found. Set the global EcoHash API Key in EcoHash settings from the sidebar or a node's Connections button. "
     "Alternatively, set the ECOHASH_API_KEY environment variable, or copy "
     "config.ini.example to config.ini inside the ComfyUI-EcoHash folder and paste your key. "
     "Get a key at https://docs.ecohash.com/getting-started/api-keys"
 )
 
 _STATUS_MESSAGES = {
-    401: "Invalid EcoHash API key (401). Check ECOHASH_API_KEY or config.ini. "
+    401: "Invalid EcoHash API key (401). Check the global API Key in EcoHash settings or ECOHASH_API_KEY. "
          "Manage keys at https://docs.ecohash.com/getting-started/api-keys",
     402: "EcoHash account has insufficient credit (402). Top up at https://docs.ecohash.com/billing/adding-credit",
     404: "Model not found on EcoHash (404). The catalog may have changed; try refreshing ComfyUI.",
@@ -105,7 +105,11 @@ def _raise_for_status(resp, endpoint=None) -> None:
     if endpoint is not None:
         if resp.status_code < 300:
             return
-        key_hint = "Check ECOHASH_DEDICATED_API_KEY or [dedicated] api_key." if endpoint.connection_id == "dedicated" else "Check the selected connection's key in EcoHash connections."
+        from .connections import uses_global_key
+        if uses_global_key(endpoint.base_url):
+            key_hint = "Check the global EcoHash API Key in EcoHash settings or ECOHASH_API_KEY."
+        else:
+            key_hint = "Check ECOHASH_DEDICATED_API_KEY or [dedicated] api_key." if endpoint.connection_id == "dedicated" else "Check the selected connection's endpoint key under Advanced connection settings."
         messages = {
             401: f"Dedicated inference authentication failed (401). {key_hint}",
             403: "Dedicated inference access denied (403). Check the dedicated key's access to this deployment.",

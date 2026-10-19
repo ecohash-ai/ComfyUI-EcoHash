@@ -3,7 +3,7 @@ try:
 except ImportError:
     from ecohash import catalog, client, conversions
 
-from .dedicated import DedicatedNode, MODEL_INPUT, model_id
+from .dedicated import DedicatedNode, PublicNode, MODEL_INPUT, model_id
 
 SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512", "1536x864", "864x1536", "custom"]
 
@@ -101,7 +101,7 @@ def _edit(image, model, prompt, size, endpoint=None):
     return (_image_result(out, endpoint),)
 
 
-class EcoHashImageGenerate:
+class EcoHashImageGenerate(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE",)
@@ -115,7 +115,7 @@ class EcoHashImageGenerate:
         return _generate(model, prompt, _size(size, width, height), steps, seed)
 
 
-class EcoHashImageEdit:
+class EcoHashImageEdit(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "edit"
     RETURN_TYPES = ("IMAGE",)

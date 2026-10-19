@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { modelsForNode, capabilityHint, connectionHint, connectionOptions, defaultConnection, localizedText, migrateVideoWorkflow, replaceOptions, setWidgetVisible, singleModel } from "../web/helpers.mjs";
+import { modelsForNode, capabilityHint, connectionHint, connectionOptions, defaultConnection, isEcoHashUrl, localizedText, migrateVideoWorkflow, replaceOptions, setWidgetVisible, singleModel } from "../web/helpers.mjs";
+
+test("only the exact EcoHash HTTPS origin uses the global key", () => {
+    for (const url of ["https://api.ecohash.com/v1", "https://API.ECOHASH.COM:443/inference-instances/999/proxy/v1/videos/"]) assert.equal(isEcoHashUrl(url), true);
+    for (const url of ["http://api.ecohash.com/v1", "https://api.ecohash.com:8443/v1", "https://api.ecohash.com.evil.example/v1",
+        "https://custom.ecohash.com/v1", "https://evil.example/api.ecohash.com/v1", "https://user@api.ecohash.com/v1",
+        "https://api.ecohash.com/v1?target=elsewhere", "https://api.ecohash.com/v1#fragment", "https://api.ecohash.com/bad path", "", null]) assert.equal(isEcoHashUrl(url), false, String(url));
+});
 
 test("conditional widgets recover their original type, visibility and undefined sizing", () => {
     const item = { type: "number", hidden: false };
@@ -36,6 +43,7 @@ test("UI labels follow ComfyUI language without duplicate bilingual paragraphs",
     assert.equal(localizedText("Test connection / 测试连接", "zh"), "测试连接");
     assert.equal(localizedText("Test connection / 测试连接", "en"), "Test connection");
     assert.equal(localizedText("EcoHash connections / 连接设置", "zh-CN"), "EcoHash 连接设置");
+    assert.equal(localizedText("EcoHash API Key verified. / EcoHash API Key 验证通过。", "zh-CN"), "EcoHash API Key 验证通过。");
     assert.equal(localizedText("https://example.com/v1", "zh"), "https://example.com/v1");
     assert.equal(localizedText("Set ENV / [dedicated] base_url", "zh"), "Set ENV / [dedicated] base_url");
 });

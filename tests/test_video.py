@@ -228,7 +228,8 @@ def test_stale_workflow_fields_cannot_override_standard_transport_or_rewrite_end
     from ecohash import connections
     from ecohash_nodes.video_nodes import EcoHashDedicatedVideoGenerate
 
-    connections.save_connection("studio", {"base_url": "https://api.ecohash.com/v1", "api_key": "private-key"})
+    connections.save_connection("public", {"api_key": "global-key"})
+    connections.save_connection("studio", {"base_url": "https://api.ecohash.com/v1"})
     fake_video = types.SimpleNamespace(get_dimensions=lambda: (1344, 768))
     monkeypatch.setitem(sys.modules, "folder_paths", types.SimpleNamespace(get_temp_directory=lambda: str(tmp_path)))
     monkeypatch.setitem(sys.modules, "comfy_api", types.ModuleType("comfy_api"))

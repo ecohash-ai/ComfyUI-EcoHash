@@ -64,10 +64,12 @@ After updating the plugin, restart the ComfyUI server and refresh the browser.
 Open the **EcoHash** cloud tab in the sidebar, click **Connections** (Chinese: **连接设置**) on any EcoHash
 node, or use **Extensions → EcoHash → EcoHash connections**.
 
-1. For public models (A), select `public`, enter your EcoHash key and **Save and connect**.
-2. For dedicated models (B), click **Add connection**, enter a display name, API URL and
-   key, then **Save and connect**. Connection IDs are generated automatically; stable IDs
-   and request timeouts remain available under **Advanced connection settings**.
+1. Enter your key once in **EcoHash API Key** and click **Save and verify API Key**.
+   Public models (A) and dedicated EcoHash instances (B) share this global credential.
+2. For dedicated models, click **Add connection**, enter a display name and API URL,
+   then **Save and connect**. EcoHash connections need no separate key. Connection IDs
+   are generated automatically; stable IDs, timeouts and independent keys for third-party
+   endpoints remain under **Advanced connection settings**.
 3. Saving checks the model list without running inference. When opened from a dedicated
    node, the manager also applies the saved connection to that node. A service without
    `/models` is reported as reachable, with authentication/inference still unverified.
@@ -88,6 +90,12 @@ and writable on POSIX). The settings API never returns saved keys. Leave a key f
 keep its value. Per-field precedence: **nonempty environment variable → saved settings →
 config.ini → default**. Environment-managed fields are marked and locked. The public API URL
 and public timeout (180 seconds) are fixed; dedicated timeout defaults to 300 seconds.
+The global key is used only for the exact `https://api.ecohash.com` origin (default HTTPS
+port, including instance proxy paths). Other hosts, HTTP URLs and alternate ports require
+their own endpoint key. Updating the global key applies to every EcoHash connection and
+invalidates their model-discovery and node-execution caches. The key is referenced, not
+copied into each connection record. `ECOHASH_DEDICATED_API_KEY` applies only to independent
+endpoints; EcoHash connections always read `ECOHASH_API_KEY` / the global setting.
 
 Each Dedicated node has an optional `connection` selection; existing workflows default
 to `dedicated`. Multiple independent deployments can run in one workflow. Shared workflows store
@@ -168,30 +176,32 @@ LLM, vision-language description, video, TTS and STT. They call separately deplo
 nodes continue to use the public EcoHash API (A), so both can be used in the same workflow.
 Dedicated nodes discover deployed model IDs and also accept a free-text ID. They do not require registration in the public model catalog.
 
-Add the following to your local, git-ignored `config.ini` (also see `config.ini.example`):
+After configuring your global key, add the following to your local, git-ignored `config.ini`
+(also see `config.ini.example`):
 
 ```ini
 [dedicated]
-base_url = https://YOUR_DEDICATED_HOST/v1
-api_key = YOUR_DEDICATED_KEY_HERE
+base_url = https://api.ecohash.com/inference-instances/INSTANCE_ID/proxy/v1
 timeout = 300
 ```
 
 Alternatively, set these variables in the environment of the **ComfyUI server process**:
 
 ```bash
-export ECOHASH_DEDICATED_BASE_URL="https://YOUR_DEDICATED_HOST/v1"
-export ECOHASH_DEDICATED_API_KEY="YOUR_DEDICATED_KEY_HERE"
+export ECOHASH_API_KEY="YOUR_ECOHASH_KEY"
+export ECOHASH_DEDICATED_BASE_URL="https://api.ecohash.com/inference-instances/INSTANCE_ID/proxy/v1"
 export ECOHASH_DEDICATED_TIMEOUT="300"
 ```
 
 Nonempty environment values override saved UI settings, which override INI values. Timeout is in seconds
 and defaults to 300. `base_url` must include the service's actual API prefix: `/v1` is **not**
 added automatically. A copied full generation endpoint is normalized to its API prefix. Trailing slashes are removed; a prefix such as `/deployments/my-model/v1`
-is preserved. The dedicated key is independent of `ECOHASH_API_KEY`; there is no fallback to
-the public key. Neither the endpoint nor its key is stored in node widgets or workflow JSON.
+is preserved. EcoHash connections share the global key. Other endpoints require their own
+key and never inherit the EcoHash key. Neither the endpoint nor its key is stored in node
+widgets or workflow JSON.
 
-Additional connections can also be configured as INI sections:
+Additional connections can also be configured as INI sections. For a self-hosted or third-party
+endpoint, include its independent key (or use the manager's Advanced connection settings):
 
 ```ini
 [connection:studio]
@@ -220,7 +230,7 @@ routes needed by their model type; they do not need to implement every route:
   `response_format=b64_json`, and optional `steps` / `seed`.
 - Editing: `POST {base_url}/images/edits`, multipart form with `model`, `prompt`, `size` and
   an `image` PNG file. `size=auto` sends the source dimensions explicitly.
-- Authentication: `Authorization: Bearer <dedicated key>`.
+- Authentication: `Authorization: Bearer <global EcoHash key>` for EcoHash URLs; an independent endpoint key elsewhere.
 - Result: `{"data": [{"b64_json": "..."}]}` or `{"data": [{"url": "https://..."}]}`.
   Result URLs must be downloadable without the inference key; that key is never forwarded
   when fetching an image URL. Each call produces one `IMAGE` from the first result.
@@ -369,21 +379,25 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 `ComfyUI/custom_nodes/` 目录下，然后 `pip install -r requirements.txt`。
 
 **界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **连接设置**。
-公共模型选择 `public` 并保存密钥；专有模型添加连接，填写显示名称、API 地址和密钥，点击
-**保存并连接**。从节点打开设置时会直接绑定该连接，再选择已发现的模型或手动填写 ID。
-连接 ID 自动生成，超时放在高级设置中；连接检查只读取模型列表。
+在顶部 **全局 API Key** 填写一次，点击 **保存并验证 API Key**，公共模型和 EcoHash 专有实例共用。
+专有模型添加连接时只填写显示名称和 API 地址，点击 **保存并连接**。
+从节点打开设置时会直接绑定该连接，再选择已发现的模型或手动填写 ID。
+连接 ID 自动生成，超时和第三方端点的独立密钥放在高级设置中；连接检查只读取模型列表。
+全局密钥仅用于 `https://api.ecohash.com` 官方地址（默认 HTTPS 端口），更换后所有 EcoHash
+连接立即生效，相关模型发现和节点缓存失效。第三方地址不会自动取得全局密钥。
 语言、图像的实际推理测试需另行确认；TTS/STT 在工作流中连接音频节点验证。
 
-**专属推理（B）**：在 `config.ini` 添加 `[dedicated]`，配置 `base_url`、`api_key` 和可选的
-`timeout`（秒，默认 300）；也可使用 `ECOHASH_DEDICATED_BASE_URL`、`ECOHASH_DEDICATED_API_KEY`
-和 `ECOHASH_DEDICATED_TIMEOUT` 环境变量。`base_url` 要包含服务实际的 API 前缀，插件不会自动添加
+**专属推理（B）**：在 `config.ini` 添加 `[dedicated]`，配置 `base_url` 和可选的
+`timeout`（秒，默认 300），官方实例自动读取全局密钥；也可使用 `ECOHASH_DEDICATED_BASE_URL`
+和 `ECOHASH_DEDICATED_TIMEOUT` 环境变量。第三方端点另外配置 `api_key` 或 `ECOHASH_DEDICATED_API_KEY`。
+`base_url` 要包含服务实际的 API 前缀，插件不会自动添加
 `/v1`。添加 **EcoHash Dedicated Image Generate / Edit** 节点，直接填写部署模型 ID 即可调用，
 无需模型出现在公共目录中。专属节点的 `connection` 可分别选择不同部署，也可通过
 `[connection:连接ID]` 配置多个端点。分享工作流时接收方配置同名连接，或在节点中重新选择。
 专属语言模型使用 **EcoHash Dedicated LLM**，支持对话、提示词增强、翻译和自定义模式；
 图片描述使用 **EcoHash Dedicated VLM Describe**，要求模型支持图片输入。语音模型使用
 **EcoHash Dedicated TTS / STT**；TTS 的音色需按模型选择或填写。
-每个节点都可选择独立专属实例，A、B 使用独立密钥并可混用。当前支持同步的 OpenAI 兼容
+每个节点都可选择不同专属实例，A、B 共用全局 EcoHash 密钥并可混用。当前支持同步的 OpenAI 兼容
 图像、聊天和语音接口；视频节点支持异步提交、任务查询和 MP4 下载，详见上方 Video generation。
 
 **视频**：新增 **EcoHash 视频生成 / 专属视频生成**，输出 `VIDEO` 接“保存视频”，保留音轨。

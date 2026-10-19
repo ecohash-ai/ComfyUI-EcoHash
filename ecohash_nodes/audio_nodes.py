@@ -5,7 +5,7 @@ try:
 except ImportError:
     from ecohash import catalog, client, conversions
 
-from .dedicated import DedicatedNode, MODEL_INPUT, model_id
+from .dedicated import DedicatedNode, PublicNode, MODEL_INPUT, model_id
 
 
 def _get_text(out):
@@ -45,7 +45,7 @@ def _speak(model, text, voice, speed, endpoint=None):
         raise client.EcoHashError("Speech API returned unsupported audio. Expected a 16-bit PCM WAV response (response_format=wav).") from None
 
 
-class EcoHashTTS:
+class EcoHashTTS(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "speak"
     RETURN_TYPES = ("AUDIO",)
@@ -80,7 +80,7 @@ def _transcribe(audio, model, language, endpoint=None):
     return (_get_text(out),)
 
 
-class EcoHashSTT:
+class EcoHashSTT(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "transcribe"
     RETURN_TYPES = ("STRING",)

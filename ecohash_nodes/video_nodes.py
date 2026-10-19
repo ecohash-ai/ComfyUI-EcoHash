@@ -6,7 +6,7 @@ try:
 except ImportError:
     from ecohash import catalog, client, video, video_contract
 
-from .dedicated import DedicatedNode, MODEL_INPUT, model_id
+from .dedicated import DedicatedNode, PublicNode, MODEL_INPUT, model_id
 
 
 def _inputs(model_input, dedicated=False):
@@ -76,7 +76,7 @@ def _run(model, prompt, duration, aspect_ratio, resolution, generate_audio=True,
     return result, job
 
 
-class EcoHashVideoGenerate:
+class EcoHashVideoGenerate(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "generate"
     RETURN_TYPES = ("VIDEO", "STRING")

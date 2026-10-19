@@ -5,7 +5,7 @@ try:
 except ImportError:
     from ecohash import catalog, client, conversions
 
-from .dedicated import DedicatedNode, MODEL_INPUT, model_id
+from .dedicated import DedicatedNode, PublicNode, MODEL_INPUT, model_id
 
 
 def _first_message_content(out):
@@ -80,7 +80,7 @@ def _run(model, mode, text, system_prompt, temperature, max_tokens, endpoint=Non
     return (_first_message_content(out),)
 
 
-class EcoHashLLM:
+class EcoHashLLM(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "run"
     RETURN_TYPES = ("STRING",)
@@ -123,7 +123,7 @@ def _describe(image, model, prompt, max_tokens, endpoint=None):
     return (_first_message_content(out),)
 
 
-class EcoHashVLMDescribe:
+class EcoHashVLMDescribe(PublicNode):
     CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "describe"
     RETURN_TYPES = ("STRING",)
