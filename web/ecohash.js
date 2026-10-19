@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionOptions, defaultConnection, isDedicated, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-12";
+import { capabilityHint, connectionOptions, defaultConnection, isDedicated, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-13";
 
 const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map(), preferred: null };
 let profilesRequest;
@@ -24,7 +24,15 @@ const connectionLabel = (profile) => `${profile.name} (${profile.id})`;
 
 function modelError(node, error) {
     node._ehDiscoveryError = error.message;
-    updateNode(node);
+    const status = widget(node, "Execution status");
+    if (status) status.value = uiText(error.message);
+    node.setDirtyCanvas?.(true, true);
+}
+
+function clearModelError(node) {
+    const status = widget(node, "Execution status");
+    if (node._ehDiscoveryError && status?.value === uiText(node._ehDiscoveryError)) status.value = "";
+    delete node._ehDiscoveryError;
 }
 
 function element(tag, text, className) {
@@ -60,7 +68,10 @@ async function loadModels(id, refresh = false) {
     const pending = request(`/models/${encodeURIComponent(id)}${refresh ? "?refresh=1" : ""}`).then((result) => {
         if (state.versions.get(id) === version) {
             state.models.set(id, result);
-            for (const node of allNodes()) if (connectionId(node) === id) delete node._ehDiscoveryError;
+            for (const node of allNodes()) if (connectionId(node) === id) {
+                if (result.error) modelError(node, new Error(result.error));
+                else clearModelError(node);
+            }
             if (id !== "public" && result.discovery_supported) state.checked.set(id, { message: "Connected and authenticated. No inference request was sent." });
         }
         return result;
@@ -112,19 +123,21 @@ function updateNode(node) {
         voicePicker.value = selected?.voices?.includes(voice) ? voice : manualVoice;
         setVisible(node, "voice", node._ehManualVoice || !selected?.voices?.includes(voice));
     }
-    const info = widget(node, "Model information");
-    if (info) info.value = [capabilityHint(selected, type, uiLocale()), uiText(node._ehDiscoveryError || result?.error)].filter(Boolean).join(" · ");
+    for (const item of [model, picker]) if (item) item.options.tooltip = capabilityHint(selected, type, uiLocale());
     const isVideo = type.endsWith("VideoGenerate");
     for (const name of ["width", "height"]) setVisible(node, name, widget(node, isVideo ? "resolution" : "size")?.value === "custom");
     if (isVideo) {
         for (const name of ["job_id", "wait_timeout"]) setVisible(node, name, !!node._ehAdvanced || name === "job_id" && !!widget(node, name)?.value);
         setVisible(node, "aspect_ratio", widget(node, "resolution")?.value !== "custom");
         const duration = widget(node, "duration");
-        if (duration) duration.options.max = selected?.video_max_duration_seconds || 86400;
+        if (duration) {
+            duration.options.min = selected?.video_min_duration_seconds || 1;
+            duration.options.max = selected?.video_max_duration_seconds || 86400;
+        }
         const resolution = widget(node, "resolution");
         if (resolution) resolution._ehDefaultValues ??= [...resolution.options.values];
         if (resolution && selected?.supported_resolutions?.length) resolution.options.values = replaceOptions(resolution.options.values,
-            [...new Set([...selected.supported_resolutions, ...(isDedicated(type) ? ["custom"] : []), resolution.value])]);
+            [...new Set([...selected.supported_resolutions, resolution.value])]);
         else if (resolution) resolution.options.values = replaceOptions(resolution.options.values,
             [...new Set([...resolution._ehDefaultValues, resolution.value])]);
     }
@@ -142,7 +155,7 @@ function allNodes() {
 
 async function applyConnection(node, id, resetModel = true) {
     if (!isDedicated(nodeType(node))) return;
-    delete node._ehDiscoveryError;
+    clearModelError(node);
     const connection = widget(node, "connection");
     const changed = connection.value !== id;
     connection.value = id;
@@ -376,6 +389,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     function displayModels(result) {
         models.replaceChildren(...result.models.map((item) => {
             const row = element("li", item.name === item.id ? item.id : `${item.name} — ${item.id}`);
+            row.title = capabilityHint(item, contextNode ? nodeType(contextNode) : "", uiLocale());
             if (contextNode && isDedicated(nodeType(contextNode)) === (selectedId !== "public") && modelsForNode([item], nodeType(contextNode)).length) {
                 const use = element("button", "Use on current node / 用于当前节点");
                 use.type = "button";
@@ -535,21 +549,20 @@ app.registerExtension({
             if (value !== manualVoice) widget(node, "voice").value = value;
             updateNode(node);
         }, { values: [manualVoice], serialize: false });
-        addUiWidget(node, "button", "Refresh models", null, async () => {
-            delete node._ehDiscoveryError;
-            const info = widget(node, "Model information");
-            if (info) info.value = uiText("Loading models… / 正在读取模型…");
+        const refresh = addUiWidget(node, "button", "Refresh models", null, async () => {
+            refresh.options.disabled = true;
+            node.setDirtyCanvas?.(true, true);
             try {
                 await loadProfiles();
-                await loadModels(connectionId(node), true);
+                const result = await loadModels(connectionId(node), true);
                 updateNode(node);
+                if (result.error) modelError(node, new Error(uiText(result.error)));
             } catch (error) { modelError(node, error); }
+            finally { refresh.options.disabled = false; }
             node.setDirtyCanvas?.(true, true);
         }, { serialize: false });
-        for (const name of ["Model information", "Execution status"]) {
-            const item = addUiWidget(node, "text", name, "", () => {}, { serialize: false });
-            item.options.read_only = true;
-        }
+        const status = addUiWidget(node, "text", "Execution status", "", () => {}, { serialize: false });
+        status.options.read_only = true;
         if (type.endsWith("VideoGenerate")) {
             addUiWidget(node, "toggle", "Advanced settings", false, (value) => { node._ehAdvanced = value; updateNode(node); }, { serialize: false });
             const task = addUiWidget(node, "text", "Video task", uiText("Job ID appears here after submission; copy it to job_id to resume. / 提交后显示任务 ID；复制到 job_id 可恢复查询。"), () => {}, { serialize: false });
@@ -557,7 +570,7 @@ app.registerExtension({
         }
         // UI-only selectors may move without changing serialized core-widget order.
         node.widgets = [...primary, ...node.widgets.filter((item) => !primary.includes(item))];
-        const labels = { "Connections": "连接设置", "Refresh models": "刷新模型", "Select connection": "连接", "Choose discovered model": "模型", "Choose voice": "音色", "Model information": "模型信息", "Video task": "视频任务", "Advanced settings": "高级设置", "Execution status": "运行状态" };
+        const labels = { "Connections": "连接设置", "Refresh models": "刷新模型", "Select connection": "连接", "Choose discovered model": "模型", "Choose voice": "音色", "Video task": "视频任务", "Advanced settings": "高级设置", "Execution status": "运行状态" };
         for (const item of node.widgets || []) {
             if (item.options?.serialize === false) {
                 item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);

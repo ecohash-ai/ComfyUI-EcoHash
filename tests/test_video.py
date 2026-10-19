@@ -111,6 +111,18 @@ def test_public_video_uses_public_key_and_download_has_no_auth(video_server, tmp
     assert [r["auth"] for r in records] == ["Bearer public-key"] * 3 + [None]
 
 
+def test_explicit_json_mapping_submits_once_and_reuses_standard_job_lifecycle(video_server, tmp_path):
+    base, records, _ = video_server
+    endpoint = client.DedicatedEndpoint(base + "/v1", "private-key", 5)
+    body = {"model": "configured-model", "prompt": "original prompt", "task": "text-motion", "target": {"seconds": 4}}
+    path, job = video.generate(protocol="openai", body=body, endpoint=endpoint, json_request=True,
+                               output_dir=tmp_path, poll_interval=0)
+    assert job == "job-123" and path.read_bytes() == MP4
+    assert records[0] == {"method": "POST", "path": "/v1/videos", "auth": "Bearer private-key", "json": body}
+    assert sum(r["method"] == "POST" for r in records) == 1
+    assert records[-1] == {"method": "GET", "path": "/blob", "auth": None}
+
+
 def test_resume_performs_no_post(video_server, tmp_path):
     base, records, _ = video_server
     endpoint = client.DedicatedEndpoint(base + "/v1", "private-key", 5)

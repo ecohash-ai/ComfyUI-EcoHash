@@ -2,7 +2,7 @@
 
 import time
 
-from . import catalog, client, connections
+from . import catalog, client, connections, video_contract
 
 _CACHE = {}
 _TTL = 300
@@ -29,9 +29,13 @@ def _normalize_model(model):
         items = model.get(key)
         if isinstance(items, list):
             result[key] = [item for item in items if isinstance(item, str)]
-    maximum = model.get("video_max_duration_seconds")
-    if isinstance(maximum, int) and not isinstance(maximum, bool) and maximum > 0:
-        result["video_max_duration_seconds"] = maximum
+    for field in ("video_min_duration_seconds", "video_max_duration_seconds"):
+        limit = model.get(field)
+        if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
+            result[field] = limit
+    for field in ("pipeline_class", "pipeline_name", "task_type", "root"):
+        if isinstance(model.get(field), str):
+            result[field] = model[field]
     if isinstance(model.get("openai_compatible"), bool):
         result["openai_compatible"] = model["openai_compatible"]
     return result
@@ -50,7 +54,16 @@ def _private_models(endpoint):
     items = payload.get("data") if isinstance(payload, dict) else payload
     if not isinstance(items, list):
         raise client.EcoHashError("Model discovery requires a models array or a JSON object with a data array.")
-    return [item for model in items if (item := _normalize_model(model)) is not None]
+    models = []
+    for model in items:
+        item = _normalize_model(model)
+        if item is None:
+            continue
+        contract = video_contract.for_endpoint(endpoint, item["id"])
+        if contract and video_contract.matches(contract, item):
+            item = _normalize_model({**model, **contract.get("capabilities", {})})
+        models.append(item)
+    return models
 
 
 def models(connection_id="public", *, refresh=False):
@@ -61,7 +74,7 @@ def models(connection_id="public", *, refresh=False):
             "discovery_supported": True, **catalog.status(),
         }
     endpoint = connections.resolve(connection_id)
-    fingerprint = (endpoint.base_url, endpoint.api_key, endpoint.timeout)
+    fingerprint = (endpoint.base_url, endpoint.api_key, endpoint.timeout, repr(video_contract.configured(connection_id)))
     cached = _CACHE.get(connection_id)
     if not refresh and cached and cached["fingerprint"] == fingerprint and time.monotonic() - cached["ts"] < _TTL:
         return {**cached["result"], "source": "cache"}

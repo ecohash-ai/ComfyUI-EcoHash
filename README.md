@@ -273,7 +273,7 @@ API (`/video/generations` and `/video/jobs/{id}`). The dedicated node uses the p
 standard video contract (`/videos`, `/videos/{id}`, `/videos/{id}/content`). Wire formats are
 internal implementation details, independent of model names.
 
-Dedicated generation sends only `model`, `prompt`, `seconds` and `size`. The service owns
+By default dedicated generation sends `model`, `prompt`, `seconds` and `size`. The service owns
 model-native parameters and default steps, frame rate, seeds, audio generation and provider
 adaptation. Any audio in the returned MP4 is preserved. Public generation additionally offers
 the gateway's audio option. Choose duration, aspect ratio and resolution; dedicated nodes
@@ -291,11 +291,14 @@ configured API prefixes are sent unchanged; the plugin does not infer instance r
 
 **Deployment compatibility:** an endpoint exposing a `/videos` route is not by itself proof
 that its create payload implements the platform contract. A container that needs native
-JSON parameters requires a service-side adapter. The previous instance-247 test used such a
-native request; it does not validate the simplified node's new-generation contract. See the
-historical [verification record](tests/MINIMAX_247_RESULTS.md) and current
-[configuration and EcoLink audit](docs/CONFIGURATION_AUDIT.md). There are no per-model native
-adapters in this plugin. Old video workflows migrate field values and links; retired native
+JSON parameters requires adaptation. For an existing nonstandard deployment, administrators
+can install an explicit [server-side request mapping](docs/VIDEO_REQUEST_MAPPING.md) bound to
+its exact connection URL, served model ID and runtime metadata. This local compatibility
+bridge does not fix the platform gateway or infer adapters from model names. No native
+parameter or protocol selector is added to nodes or workflows. See the historical
+[verification record](tests/MINIMAX_247_RESULTS.md) and current
+[configuration and EcoLink audit](docs/CONFIGURATION_AUDIT.md).
+Old video workflows migrate field values and links; retired native
 workflows display a compatibility reminder. Their old protocol/steps/seed fields are removed.
 
 Video submission accepts HTTP 200 or 202 and **never automatically retries a POST**. The node
@@ -388,7 +391,9 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 无需选择或配置接口协议。选择连接和模型后，填写提示词、时长和尺寸即可；模型能力、时长上限
 和公共模型的分辨率档位从服务端读取，不按 Seedance、MiniMax、Wan 或 LTX 等名称分类。
 步数、帧率等由平台管理。专有模型可选自定义宽高；已有任务 ID 和等待超时在高级设置中。
-旧版原生视频实例仍需服务端提供兼容接口，不能仅凭模型 ID 保证支持。
+原生视频实例需要兼容接口或管理员安装的服务端请求映射，不能仅凭模型 ID 保证支持。
+请求映射按当前连接和部署元数据绑定，不在节点中暴露原生参数，也不按模型名称套用规则。
+节点不显示连接状态和模型信息字段；能力说明放在模型选择器的悬浮提示和连接设置中。
 
 **参数和帮助**：`size=custom` 时显示宽高；LLM 的 `custom` 模式才显示系统提示词。
 节点库的 EcoHash 下分为“公共模型”和“专有模型”两个分组，每组各包含 7 个节点。

@@ -127,6 +127,7 @@ export function capabilityHint(model, type, locale = "en") {
     if (type.endsWith("TTS")) hints.push(model.voices?.length ? `${t("Voices / 音色")}: ${model.voices.join(", ")}` : t("Voice IDs vary by model; enter a voice supported by this model. / 请填写该模型支持的音色 ID。"));
     if (type.endsWith("VideoGenerate")) {
         hints.push(t("Text-to-video; asynchronous job → MP4 with audio when supported → Save Video / 文生视频：异步任务 → MP4（保留音轨）→ 保存视频"));
+        if (model.video_min_duration_seconds) hints.push(`${t("Minimum seconds / 最短秒数")}: ${model.video_min_duration_seconds}`);
         if (model.video_max_duration_seconds) hints.push(`${t("Maximum seconds / 最长秒数")}: ${model.video_max_duration_seconds}`);
         hints.push(model.supported_resolutions?.length ? `${t("Resolutions / 分辨率")}: ${model.supported_resolutions.join(", ")}` : t("Size presets do not establish model support / 通用尺寸预设不代表该模型支持"));
     }

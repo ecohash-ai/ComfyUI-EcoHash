@@ -2,7 +2,7 @@
 
 Date: 2026-10-19. Local branch: `feat/dedicated-inference`.
 
-- Python: `194 passed` (`.venv/bin/python -m pytest -q`).
+- Python: `209 passed` (`.venv/bin/python -m pytest -q`).
 - Frontend helpers: `21 passed` (`node --test tests/test_ui.mjs`).
 - JavaScript syntax and `git diff --check`: passed.
 
@@ -42,8 +42,50 @@ as `EcoHash_Video_simplified_resume_verified` (10 fields). Credentials were excl
 both exports. Local evidence is stored in `/private/tmp/ecohash-simplified-result.json`
 and `/private/tmp/ecohash-simplified-inspection.json`.
 
-This verification does not establish standard create-request compatibility for instance 247.
-Its historical native-only creation success is recorded separately in
-`MINIMAX_247_RESULTS.md`. The current platform routing/metadata gaps and node-by-node
+The resume test above does not establish standard create-request compatibility for instance 247.
+Its historical native-only creation success is recorded separately in `MINIMAX_247_RESULTS.md`.
+The current platform routing/metadata gaps and node-by-node
 configuration audit are documented in `../docs/CONFIGURATION_AUDIT.md`.
 EcoLink source was inspected read-only; no backend changes were deployed.
+
+## Original-prompt new-generation regression
+
+The user's new-generation failure was reproduced: this instance requires a native `task`
+despite its `/videos` route and generic OpenAPI schema. A declarative JSON request mapping
+is now supported in the ComfyUI server's connection record. The actual instance-247 mapping
+is local deployment data, bound to its exact URL, served model ID and the freshly returned
+`pipeline_class`/`root`; no model-family rules were added to production code.
+
+The original failed workflow was captured before restart. Its 565-character Chinese prompt
+has SHA-256 `e0422d353d2e3cd2d7bcd7d08aa686f8913d67eb56a00a2390e745bab81e0dbb`.
+A mapped 4-second/720p request was rejected with HTTP 400:
+`target.short_edge must be 768 for minimax_h3, got 720`. No remote job was returned and the
+plugin did not retry. The connection now explicitly declares `supported_resolutions: ["768p"]`;
+incompatible resolutions are rejected locally before creation. This is an instance-specific
+declared constraint, not a general rule about that model family.
+
+After correcting the selected resolution to 768p, one new generation succeeded using the
+unchanged original prompt and 4-second duration:
+
+- ComfyUI prompt: `93bc6622-9455-4827-8adc-390d7366976f`, 80.35 seconds, no cached nodes.
+- Remote job: `7f359bf4-4e50-4668-8aae-8e6748031a23`, completed, 100%.
+- Saved output: `output/video/ComfyUI_00008_.mp4`, 2,290,930 bytes.
+- Decoded video: H.264, 1344×768, 107 frames at 24 fps, 4.458 seconds.
+- Decoded audio: AAC stereo, 32 kHz, 142,400 samples.
+- Five sampled frames decoded successfully; they show the rain-soaked station, red coat,
+  silver animal, umbrella and train. This verifies generation/transport/playback, not perfect
+  adherence to every action in the long prompt within four seconds.
+
+The saved workflow `EcoHash_H3_original_prompt_768p` was exported and its prompt verified
+against the failed task. It has no protocol, steps or seed fields and contains no API key.
+Both Model information and Connection status are absent from the refreshed node inspector.
+Capability hints remain on the model selector and connection-manager model rows.
+New unit tests cover exact deployment binding, runtime identity changes, typed JSON mapping,
+prompt preservation, rounded preset ratios, declared limits, credential isolation, cache
+invalidation and the single-POST JSON lifecycle. The 21 frontend tests also pass.
+
+Local evidence: `/private/tmp/ecohash-minimax-247/original-failed-workflow.json`,
+`original-prompt-retry-result.json` (720p rejection), `original-prompt-768p-result.json`,
+`retry-768p-create-body.json`, `output-verification.json`, `original-prompt-768p.mp4`.
+This is a local compatibility bridge; the EcoLink routing/metadata gaps described in the
+audit remain. The plugin does not automatically configure mappings for other deployments.

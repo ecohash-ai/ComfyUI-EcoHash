@@ -1,7 +1,10 @@
+import hashlib
+import json
+
 try:
-    from ..ecohash import catalog, client, video
+    from ..ecohash import catalog, client, video, video_contract
 except ImportError:
-    from ecohash import catalog, client, video
+    from ecohash import catalog, client, video, video_contract
 
 from .dedicated import DedicatedNode, MODEL_INPUT, model_id
 
@@ -11,7 +14,7 @@ def _inputs(model_input, dedicated=False):
     required.update({
         "duration": ("INT", {"default": 4, "min": 1, "max": 86400, "tooltip": "Requested seconds; model limits come from the service, not the model name."}),
         "aspect_ratio": (video.RATIOS, {"default": "16:9"}),
-        "resolution": (video.RESOLUTIONS + (["custom"] if dedicated else []), {"default": "720p", "tooltip": "Common size presets, not a guarantee of model support. Check model information or use a supported custom size."}),
+        "resolution": (video.RESOLUTIONS + (["custom"] if dedicated else []), {"default": "720p", "tooltip": "Common size presets, not a guarantee of model support. Hover over the model selector for capabilities or use a supported custom size."}),
     })
     if not dedicated:
         required["generate_audio"] = ("BOOLEAN", {"default": True, "tooltip": "Request audio when supported by the gateway model."})
@@ -56,9 +59,14 @@ def _run(model, prompt, duration, aspect_ratio, resolution, generate_audio=True,
 
     body = {} if job_id.strip() else video.build_request(protocol, model, prompt, duration, aspect_ratio, resolution,
                                                          generate_audio, width=width, height=height)
+    mapped = video_contract.prepare(endpoint, body["model"], body["prompt"], duration, resolution, width, height,
+                                    aspect_ratio=aspect_ratio if resolution != "custom" else None) if endpoint and body else None
+    if mapped is not None:
+        body = mapped
     path, job = video.generate(protocol=protocol, body=body, endpoint=endpoint, job_id=job_id,
                                wait_timeout=wait_timeout, output_dir=folder_paths.get_temp_directory(),
-                               check_interrupt=throw_exception_if_processing_interrupted, progress=progress)
+                               check_interrupt=throw_exception_if_processing_interrupted, progress=progress,
+                               json_request=mapped is not None)
     result = VideoFromFile(str(path))
     try:
         result.get_dimensions()
@@ -90,11 +98,17 @@ class EcoHashVideoGenerate:
 
 
 class EcoHashDedicatedVideoGenerate(DedicatedNode, EcoHashVideoGenerate):
-    DESCRIPTION = "Generate text-to-video on a dedicated model. Select a connection and model. The service handles model-specific defaults and adaptation; VIDEO preserves any audio in the returned MP4. Connect to Save Video."
+    DESCRIPTION = "Generate text-to-video on a dedicated model. Select a connection and model. Nonstandard services need an explicit server-side request mapping; no protocol selection is required. VIDEO preserves any audio in the returned MP4. Connect to Save Video."
 
     @classmethod
     def INPUT_TYPES(cls):
         return _inputs(MODEL_INPUT, dedicated=True)
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        connection = kwargs.get("connection", "dedicated")
+        settings = [DedicatedNode.IS_CHANGED(**kwargs), video_contract.configured(connection)]
+        return hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
 
     @classmethod
     def VALIDATE_INPUTS(cls, resolution="720p", connection="dedicated"):

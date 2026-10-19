@@ -91,7 +91,7 @@ def _download(url, target, timeout, check_interrupt, *, endpoint=None, authentic
 
 
 def generate(*, protocol, body, output_dir, endpoint=None, job_id="", wait_timeout=1800,
-             check_interrupt=lambda: None, progress=lambda *args: None, poll_interval=3):
+             check_interrupt=lambda: None, progress=lambda *args: None, poll_interval=3, json_request=False):
     """Submit once, or resume a job; return the downloaded MP4 path and its ID."""
     if protocol not in PROTOCOLS:
         raise client.EcoHashError("Unknown video API protocol.")
@@ -110,7 +110,7 @@ def generate(*, protocol, body, output_dir, endpoint=None, job_id="", wait_timeo
     else:
         # Deliberately no retry: a lost POST response may still have created a job.
         try:
-            if protocol == "openai":
+            if protocol == "openai" and not json_request:
                 result = client.request_json("POST", submit_path, files={k: (None, str(v)) for k, v in body.items()},
                                              timeout=min(endpoint.timeout if endpoint else 180, 60), **options)
             else:
