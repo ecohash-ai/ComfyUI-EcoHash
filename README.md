@@ -157,7 +157,9 @@ Node status shows waiting, completed, cached, interrupted or failed execution.
 
 ## Dedicated inference (B)
 
-The six **EcoHash/Dedicated** nodes cover all supported model types: image generation/editing,
+The node library has two groups under **EcoHash**: **Public Models** and **Dedicated Models**
+(Chinese: **公共模型** and **专有模型**), each containing six nodes. The six dedicated nodes
+cover all supported model types: image generation/editing,
 LLM, vision-language description, TTS and STT. They call separately deployed models. The original six
 nodes continue to use the public EcoHash API (A), so both can be used in the same workflow.
 Dedicated nodes accept a free-text model ID and do not consult the public model catalog.
@@ -318,6 +320,7 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 图像、聊天和语音接口；异步任务或其他协议需要另行适配，详见上方 Dedicated inference。
 
 **参数和帮助**：`size=custom` 时显示宽高；LLM 的 `custom` 模式才显示系统提示词。
+节点库的 EcoHash 下分为“公共模型”和“专有模型”两个分组，每组各包含 6 个节点。
 音色按模型元数据显示可选项，未提供列表时支持手填。示例可从工作流模板浏览器加载；节点的信息面板
 提供使用说明。Windows Portable 安装依赖时请使用内嵌 Python，命令见上方 Install。
 

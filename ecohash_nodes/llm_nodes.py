@@ -81,7 +81,7 @@ def _run(model, mode, text, system_prompt, temperature, max_tokens, endpoint=Non
 
 
 class EcoHashLLM:
-    CATEGORY = "EcoHash"
+    CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "run"
     RETURN_TYPES = ("STRING",)
     DESCRIPTION = "Public EcoHash chat, prompt enhancement and translation. system_prompt is used in custom mode. Connect STRING outputs to downstream prompts."
@@ -124,7 +124,7 @@ def _describe(image, model, prompt, max_tokens, endpoint=None):
 
 
 class EcoHashVLMDescribe:
-    CATEGORY = "EcoHash"
+    CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "describe"
     RETURN_TYPES = ("STRING",)
     DESCRIPTION = "Describe one image using a public EcoHash vision model. Connect the text to an image generator's prompt."

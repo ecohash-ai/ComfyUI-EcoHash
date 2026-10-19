@@ -23,7 +23,7 @@ def model_id(model):
 
 
 class DedicatedNode:
-    CATEGORY = "EcoHash/Dedicated"
+    CATEGORY = "EcoHash/DedicatedModels"
 
     @classmethod
     def connection_input(cls):

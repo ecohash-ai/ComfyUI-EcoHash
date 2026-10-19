@@ -102,7 +102,7 @@ def _edit(image, model, prompt, size, endpoint=None):
 
 
 class EcoHashImageGenerate:
-    CATEGORY = "EcoHash"
+    CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE",)
     DESCRIPTION = "Generate an image through the public EcoHash API. Configure your key with the Connections button or EcoHash sidebar."
@@ -116,7 +116,7 @@ class EcoHashImageGenerate:
 
 
 class EcoHashImageEdit:
-    CATEGORY = "EcoHash"
+    CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "edit"
     RETURN_TYPES = ("IMAGE",)
     DESCRIPTION = "Edit one image through the public EcoHash API. Choose a model that supports image editing."

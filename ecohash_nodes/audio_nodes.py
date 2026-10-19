@@ -46,7 +46,7 @@ def _speak(model, text, voice, speed, endpoint=None):
 
 
 class EcoHashTTS:
-    CATEGORY = "EcoHash"
+    CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "speak"
     RETURN_TYPES = ("AUDIO",)
     DESCRIPTION = "Generate speech through the public EcoHash API. Voice IDs are model-specific; discovery shows available voices when supplied by the service."
@@ -81,7 +81,7 @@ def _transcribe(audio, model, language, endpoint=None):
 
 
 class EcoHashSTT:
-    CATEGORY = "EcoHash"
+    CATEGORY = "EcoHash/PublicModels"
     FUNCTION = "transcribe"
     RETURN_TYPES = ("STRING",)
     DESCRIPTION = "Transcribe one audio clip through the public EcoHash API. Leave language blank for automatic detection."
