@@ -300,12 +300,21 @@ workflows display a compatibility reminder. Their old protocol/steps/seed fields
 
 Video submission accepts HTTP 200 or 202 and **never automatically retries a POST**. The node
 shows the job ID and status in **Video task**, also logs the ID on the server, and returns it
-as a STRING output. `wait_timeout` (default 1800 seconds) limits waiting for completion;
+as an optional STRING output. Normal wiring is `video → Save Video.video`; `job_id` can stay
+unconnected. To display or keep the completed job ID, connect `job_id → Preview as Text.source`
+or `job_id → Save Text.text`. These downstream nodes receive the ID after generation completes.
+While waiting, or after a failure, copy it from **Video task** or the server log instead.
+Do not connect the output back to the same node's `job_id` input: that creates a graph cycle.
+
+`wait_timeout` (default 1800 seconds) limits waiting for completion;
 the connection timeout limits each request. To recover after a timeout or interruption, paste
 the ID into `job_id` under **Advanced settings**, keeping the same connection. This resumes polling and download
 without another generation. Clear `job_id` to generate a new video. Stopping ComfyUI only stops
 local waiting; the remote job may continue. Signed result URLs and content redirects are fetched
 without forwarding the inference key. Downloads are limited to 512 MiB per video.
+
+Connection checks appear in the connection manager. Nodes show model information and execution
+status without a separate connection-status field; discovery errors appear with model information.
 
 Examples: [`text_to_video.json`](example_workflows/text_to_video.json) and
 [`dedicated_text_to_video.json`](example_workflows/dedicated_text_to_video.json).

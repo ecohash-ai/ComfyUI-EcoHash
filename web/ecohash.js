@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionHint, connectionOptions, defaultConnection, isDedicated, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-11";
+import { capabilityHint, connectionOptions, defaultConnection, isDedicated, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-12";
 
 const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map(), preferred: null };
 let profilesRequest;
@@ -21,6 +21,11 @@ const manualVoice = uiText("Enter voice ID manually / 手动填写音色 ID");
 const chooseModel = uiText("Select a model / 请选择模型");
 const chooseConnection = uiText("Select a connection / 请选择连接");
 const connectionLabel = (profile) => `${profile.name} (${profile.id})`;
+
+function modelError(node, error) {
+    node._ehDiscoveryError = error.message;
+    updateNode(node);
+}
 
 function element(tag, text, className) {
     const item = document.createElement(tag);
@@ -55,6 +60,7 @@ async function loadModels(id, refresh = false) {
     const pending = request(`/models/${encodeURIComponent(id)}${refresh ? "?refresh=1" : ""}`).then((result) => {
         if (state.versions.get(id) === version) {
             state.models.set(id, result);
+            for (const node of allNodes()) if (connectionId(node) === id) delete node._ehDiscoveryError;
             if (id !== "public" && result.discovery_supported) state.checked.set(id, { message: "Connected and authenticated. No inference request was sent." });
         }
         return result;
@@ -107,9 +113,7 @@ function updateNode(node) {
         setVisible(node, "voice", node._ehManualVoice || !selected?.voices?.includes(voice));
     }
     const info = widget(node, "Model information");
-    if (info) info.value = capabilityHint(selected, type, uiLocale());
-    const status = widget(node, "Connection status");
-    if (status) status.value = uiText(result?.error || state.checked.get(id)?.message || connectionHint(state.connections, id, uiLocale()));
+    if (info) info.value = [capabilityHint(selected, type, uiLocale()), uiText(node._ehDiscoveryError || result?.error)].filter(Boolean).join(" · ");
     const isVideo = type.endsWith("VideoGenerate");
     for (const name of ["width", "height"]) setVisible(node, name, widget(node, isVideo ? "resolution" : "size")?.value === "custom");
     if (isVideo) {
@@ -138,6 +142,7 @@ function allNodes() {
 
 async function applyConnection(node, id, resetModel = true) {
     if (!isDedicated(nodeType(node))) return;
+    delete node._ehDiscoveryError;
     const connection = widget(node, "connection");
     const changed = connection.value !== id;
     connection.value = id;
@@ -514,7 +519,7 @@ app.registerExtension({
             const profile = state.connections.find((p) => connectionLabel(p) === label);
             if (!profile) return;
             try { await applyConnection(node, profile.id); }
-            catch (error) { widget(node, "Connection status").value = error.message; }
+            catch (error) { modelError(node, error); }
         }, { values: [chooseConnection], serialize: false }));
         if (isDedicated(type)) primary.push(addUiWidget(node, "combo", "Choose discovered model", chooseModel, (value) => {
             node._ehManualModel = value === manualModel;
@@ -531,17 +536,17 @@ app.registerExtension({
             updateNode(node);
         }, { values: [manualVoice], serialize: false });
         addUiWidget(node, "button", "Refresh models", null, async () => {
-            const status = widget(node, "Connection status");
-            if (status) status.value = uiText("Loading models… / 正在读取模型…");
+            delete node._ehDiscoveryError;
+            const info = widget(node, "Model information");
+            if (info) info.value = uiText("Loading models… / 正在读取模型…");
             try {
                 await loadProfiles();
-                const result = await loadModels(connectionId(node), true);
+                await loadModels(connectionId(node), true);
                 updateNode(node);
-                if (status) status.value = uiText(result.error || `Models refreshed (${result.source}) / 模型已刷新`);
-            } catch (error) { if (status) status.value = error.message; }
+            } catch (error) { modelError(node, error); }
             node.setDirtyCanvas?.(true, true);
         }, { serialize: false });
-        for (const name of ["Connection status", "Model information", "Execution status"]) {
+        for (const name of ["Model information", "Execution status"]) {
             const item = addUiWidget(node, "text", name, "", () => {}, { serialize: false });
             item.options.read_only = true;
         }
@@ -552,7 +557,7 @@ app.registerExtension({
         }
         // UI-only selectors may move without changing serialized core-widget order.
         node.widgets = [...primary, ...node.widgets.filter((item) => !primary.includes(item))];
-        const labels = { "Connections": "连接设置", "Refresh models": "刷新模型", "Select connection": "连接", "Choose discovered model": "模型", "Choose voice": "音色", "Connection status": "连接状态", "Model information": "模型信息", "Video task": "视频任务", "Advanced settings": "高级设置", "Execution status": "运行状态" };
+        const labels = { "Connections": "连接设置", "Refresh models": "刷新模型", "Select connection": "连接", "Choose discovered model": "模型", "Choose voice": "音色", "Model information": "模型信息", "Video task": "视频任务", "Advanced settings": "高级设置", "Execution status": "运行状态" };
         for (const item of node.widgets || []) {
             if (item.options?.serialize === false) {
                 item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);
@@ -560,7 +565,7 @@ app.registerExtension({
         }
         hookWidget(node, "connection", async () => {
             try { await applyConnection(node, connectionId(node), false); }
-            catch (error) { widget(node, "Connection status").value = error.message; }
+            catch (error) { modelError(node, error); }
         });
         hookWidget(node, "model", () => {
             if (type.endsWith("TTS")) {
@@ -586,9 +591,6 @@ app.registerExtension({
                 if (!node._ehRestored && (!result.models.length || modelsForNode(result.models, type).length)) await applyConnection(node, preferred);
             } else await loadModels(connectionId(node));
             updateNode(node);
-        }).catch((error) => {
-            const status = widget(node, "Connection status");
-            if (status) status.value = error.message;
-        });
+        }).catch((error) => modelError(node, error));
     },
 });
