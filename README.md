@@ -4,7 +4,7 @@
 
 <h1 align="center">ComfyUI-EcoHash</h1>
 
-<p align="center">EcoHash nodes for ComfyUI — image and video generation, image editing, LLM prompt tools, vision captioning, TTS and STT, powered by the EcoHash API.</p>
+<p align="center">Connect public and dedicated EcoHash models to ComfyUI with one API key: image and video generation, image editing, language and vision tools, TTS and STT. No local model weights required for these API nodes.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
@@ -38,9 +38,20 @@ starter credit so you can try the nodes before adding a payment method. Full doc
 For complete setup instructions, all fourteen nodes, example workflows, video-task
 recovery, API compatibility and troubleshooting, read the **[User Guide](docs/USER_GUIDE.md)**.
 
-**Option A — ComfyUI-Manager**
+**Option A — Comfy Registry and ComfyUI-Manager**
 
-Open ComfyUI-Manager, search for `EcoHash`, and install "ComfyUI-EcoHash".
+Find **EcoHash**, package ID `comfyui-ecohash`, on
+[Comfy Registry](https://registry.comfy.org/zh/nodes/comfyui-ecohash).
+The page includes the publisher, published versions, repository link and install command.
+In ComfyUI-Manager, search for `EcoHash` or `comfyui-ecohash` and install the package.
+If you use Comfy CLI with your configured ComfyUI environment, run:
+
+```bash
+comfy node install comfyui-ecohash
+```
+
+Restart ComfyUI and refresh the browser after installation. Registry installations use
+published releases; the available nodes depend on the version installed.
 
 **Option B — git clone**
 
@@ -338,9 +349,9 @@ Connection checks appear in the connection manager. Nodes show execution status;
 information is available in selector tooltips. There is no separate model-information or
 connection-status row.
 
-These API nodes return completed media, not MODEL/CLIP/VAE/LATENT objects. A native diffusion
-template's weight-loading, LoRA, sampler and decoder nodes cannot all remain active controls of
-the API call. See [workflow composition and native-template limits](docs/USER_GUIDE.md#12-compose-public-and-dedicated-models).
+Connect EcoHash IMAGE, STRING, AUDIO and VIDEO outputs to compatible processing, preview and
+save nodes. See [workflow composition](docs/USER_GUIDE.md#12-compose-public-and-dedicated-models)
+for examples combining public and dedicated models.
 
 Examples: [`text_to_video.json`](example_workflows/text_to_video.json) and
 [`dedicated_text_to_video.json`](example_workflows/dedicated_text_to_video.json).
@@ -379,8 +390,9 @@ verification and the remaining checks for a real dedicated deployment.
 ## 中文说明
 
 EcoHash 提供 NVIDIA RTX PRO 6000 GPU 云，以及构建其上的 OpenAI 兼容推理 API。ComfyUI-EcoHash 为
-ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话、图像描述（VLM）、文本转语音（TTS）
-和语音转文本（STT），以及覆盖相同类型的 6 个专属推理节点。这些节点无需本地 GPU 或下载模型。
+ComfyUI 提供 7 个公共 API 节点，调用图像生成/编辑、视频生成、LLM 对话、图像描述（VLM）、
+文本转语音（TTS）和语音转文本（STT），以及覆盖相同能力的 7 个专有模型节点。
+官方公共与专有连接共用一个 EcoHash API Key；这些 API 节点无需本地推理 GPU 或下载模型。
 
 **GPU 云**：同一个账号也可按小时租用 [RTX PRO 6000 Blackwell 实例](https://ecohash.com/gpu/rtx-pro-6000?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-zh)（96 GB 显存），
 用于运行带本地模型的完整 ComfyUI 环境，详见 [GPU 云文档](https://docs.ecohash.com/gpu-compute/overview?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-docs-zh)。
@@ -388,8 +400,11 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 **注册**：前往 [ecohash.com](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.signup-zh) 注册账号，新账号会获得少量免费额度用于试用；完整文档见
 [docs.ecohash.com](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.docs-zh)。
 
-**安装**：在 ComfyUI-Manager 中搜索 "EcoHash" 安装，或将本仓库 `git clone` 到
-`ComfyUI/custom_nodes/` 目录下，然后 `pip install -r requirements.txt`。
+**安装**：在 [Comfy Registry 插件页面](https://registry.comfy.org/zh/nodes/comfyui-ecohash)
+查看发布版本和安装命令。可在 ComfyUI-Manager 中搜索 "EcoHash" / "comfyui-ecohash"，
+或使用已配置好环境的 Comfy CLI 执行 `comfy node install comfyui-ecohash`。
+也可将本仓库 `git clone` 到 `ComfyUI/custom_nodes/`，用 ComfyUI 自身的 Python
+安装 `requirements.txt`。安装后重启 ComfyUI 并刷新浏览器。
 
 **界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **连接设置**。
 在顶部 **全局 API Key** 填写一次，点击 **保存并验证 API Key**，公共模型和 EcoHash 专有实例共用。

@@ -4,10 +4,6 @@ This guide covers the current plugin implementation: seven public-model nodes an
 seven dedicated-model nodes. It describes configuration, every node, complete
 workflows, video recovery, deployment compatibility, and troubleshooting.
 
-The package version remains **1.0.1**. Features documented from the development
-branch are not a claim that version 1.1.0 has been published. Install the branch
-containing these changes when reviewing them before a release.
-
 ## Contents
 
 1. [What the plugin does](#1-what-the-plugin-does)
@@ -48,15 +44,6 @@ GPU. ComfyUI still needs memory, disk space, and its ordinary dependencies to
 handle images, audio, and downloaded video. Other nodes in the same graph may
 have their own local GPU and model requirements.
 
-**An API node is not a remote replacement for every native diffusion node.**
-It does not return a local `MODEL`, `CLIP`, `VAE`, `CONDITIONING`, or `LATENT` object.
-Replacing an entire native sampling chain with a video-generation API changes
-what the workflow can control. A native workflow's LoRA, sampler, scheduler,
-step count, exact frame count, and VAE settings do not automatically transfer
-to a remote service. Keeping all of those nodes active requires a compatible
-full ComfyUI execution environment; this plugin does not submit arbitrary native
-ComfyUI graphs to a remote worker.
-
 ## 2. Requirements and installation
 
 Use a working ComfyUI installation and its own Python environment. The plugin's
@@ -66,11 +53,28 @@ for ComfyUI itself. Video workflows require native `VIDEO` and **Save Video**
 support. The browser needs access to the ComfyUI server; that server needs access
 to the inference endpoint and any returned media download URLs.
 
-### Install with ComfyUI-Manager
+### Install through Comfy Registry
 
-In ComfyUI-Manager, search for **EcoHash** and install **ComfyUI-EcoHash** if it is
-available in your Manager catalog. Restart the ComfyUI server, then reload the
-browser. For an unreleased feature branch, use the manual installation below.
+Open the [EcoHash package on Comfy Registry](https://registry.comfy.org/zh/nodes/comfyui-ecohash).
+Confirm the package ID **`comfyui-ecohash`** and publisher **`ecohash`**. The page
+shows the package description, published versions, source repository and the
+installation command. Registry installs use a published release; the installed
+version determines which nodes are available.
+
+Choose one installation method:
+
+- **ComfyUI-Manager:** search for **EcoHash** or **comfyui-ecohash**, select the
+  package, and install it.
+- **Comfy CLI:** if your CLI is already configured for the intended ComfyUI
+  environment, run the command shown on the Registry page:
+
+  ```bash
+  comfy node install comfyui-ecohash
+  ```
+
+Restart the ComfyUI backend and reload the browser. Review the Registry version
+history when checking which release you have installed. For the CLI itself,
+follow the [Comfy CLI installation instructions](https://docs.comfy.org/comfy-cli/getting-started#install-cli).
 
 ### Install manually
 
@@ -431,7 +435,7 @@ For a public video, wire:
 EcoHash Video Generate.video → Save Video.video
 ```
 
-For a dedicated-instance demo:
+For dedicated video generation:
 
 1. Verify the global key and save the instance's connection.
 2. Add **EcoHash Dedicated Video Generate** and **Save Video**.
@@ -439,15 +443,14 @@ For a dedicated-instance demo:
 4. Enter your prompt, a service-supported duration, ratio, and resolution.
 5. Leave `job_id` empty for a new task.
 6. Connect `video` to **Save Video.video**.
-7. Set a filename prefix such as `video/EcoHash_demo`; keep Save Video's automatic
+7. Set a filename prefix such as `video/EcoHash`; keep Save Video's automatic
    format/codec defaults unless you need a specific supported output format.
 8. Run once and wait. The Video task field shows the accepted job ID.
 9. Preview the result and locate the saved file under ComfyUI's output directory.
 
 The generator downloads an MP4 to the ComfyUI temporary directory. **Save Video**
 makes the result persistent and retains the returned audio when compatible with
-the selected save format/codec. Native frame decoding and audio processing are
-not separate EcoHash workflow nodes in this API mode.
+the selected save format/codec.
 
 A dedicated instance is selected by the connection URL and the model ID accepted
 at that URL. A successful public-model request does not verify your dedicated
@@ -456,7 +459,7 @@ the correct video submission route. The deployment must support the required
 video lifecycle described in [section 16](#16-required-inference-api-behavior).
 
 The optional `job_id` **output** is a string available after the generation node
-finishes. Leave it unconnected for an ordinary demo, or connect it to a text
+finishes. Leave it unconnected when you only need the video, or connect it to a text
 preview/saver you have installed. Do not connect it back to the same node's
 `job_id` **input**: that would create a cycle. During execution or after failure,
 copy the task ID from Video task or the ComfyUI server log instead.
@@ -505,11 +508,10 @@ share the global key, while independent services use their own credentials.
 Models and available operations can change. Refresh their catalogs and verify
 each operation instead of treating a brand name as a capability contract.
 
-When adapting a native template, preserve ordinary preprocessing and downstream
-output nodes that still have meaningful inputs. Native weight-loading, LoRA,
-conditioning, sampling, and latent decoding cannot be retained as active controls
-of an API call unless the backend explicitly supports that execution model. Do
-not keep disconnected or ignored nodes merely to make the graph appear unchanged.
+Connect outputs to inputs of the same ComfyUI data type. For example, a language
+node's `STRING` can supply a generator's prompt, and a returned `IMAGE`, `AUDIO`,
+or `VIDEO` can feed compatible processing, preview and save nodes. Choose each
+model and connection independently, then run the workflow.
 
 ## 13. Use the bundled templates
 
@@ -663,11 +665,9 @@ compatibility bridge, not a model-family switch or a protocol selector. Standard
 deployments need no mapping. Unknown fields and model names do not cause the
 plugin to guess an adapter or retry a creation request.
 
-This plugin does not launch instances, install server-side weights, attach
-LoRAs, offer arbitrary sampler controls, execute arbitrary remote ComfyUI graphs,
-or provide reference-conditioned video generation. A dedicated model must
-support the operation you select; deployment ownership alone is not evidence
-of operation compatibility.
+Choose a running deployment that supports the selected operation. Model
+deployment and lifecycle settings are managed in EcoHash; the plugin uses the
+endpoint supplied for that deployment.
 
 ## 17. Troubleshooting
 
@@ -682,7 +682,7 @@ of operation compatibility.
 | HTTP 403 | Check the account's access to the deployment or operation. Verify the selected connection and the service's access rules. |
 | HTTP 402 | Check your EcoHash account credit and billing state. |
 | HTTP 404 | Verify the API prefix, deployed model ID, endpoint route, and instance availability. Gateway and instance-proxy model IDs may differ. |
-| HTTP 400/422 or `task is required` | The selected service rejected the payload. Check supported parameters and the deployment contract; a native-only video container may need an administrator-installed mapping. |
+| HTTP 400/422 | The selected service rejected the payload. Check the error details, selected operation, model and supported parameters; ask the service administrator about any required adaptation. |
 | Connection exists but node says select/configure a connection | Select the real connection in that node. Imported workflows may reference an ID that does not exist on this server. |
 | Reachable but not verified | `/models` is absent or incompatible. Reachability alone does not establish authentication or inference support. |
 | Model absent from picker | Refresh, check the correct connection, and inspect declared capabilities. Enter an exact ID manually when appropriate; manual entry does not add unsupported operations. |
@@ -694,7 +694,6 @@ of operation compatibility.
 | Video timeout or interruption | Keep the accepted task ID, retain its original connection, and use the recovery procedure before submitting again. |
 | Video completed remotely but download failed | Resume the same task; check result URL expiry, content access, valid MP4 output, available disk space, and the 512 MiB limit. |
 | Run returns immediately | Check Execution status: unchanged node inputs may reuse ComfyUI's cache. |
-| Native UNET/CLIP/VAE/LoRA file missing | Those are local model-loader nodes. A model API key does not supply native weights; use an API workflow or a full environment containing the required files. |
 
 Do not repeatedly queue an identical failed video creation after a lost response.
 Keep the error and any task ID; first establish whether the service created a task.
@@ -712,11 +711,6 @@ can still be private. A recipient configures their own key and connections, then
 selects the appropriate local connection in each dedicated node. Matching display
 names alone do not make different internal IDs interchangeable.
 
-Older plugin video workflows can migrate retired protocol/step/seed fields while
-preserving applicable values and links. A migrated native workflow still needs
-a compatible service contract; migration is not proof that native controls were
-preserved as remote API parameters.
-
 For backup, keep workflows and server configuration separately. Protect any
 configuration backup as a credential file. Removing the plugin or deleting a
 connection does not revoke an EcoHash key or stop a remote inference instance.
@@ -731,25 +725,11 @@ Use the checks appropriate to the claim you need:
 | Global key verification | Authenticated access to the model-list endpoint | Successful inference for every model |
 | Save connection / Refresh models | Discovery at the selected URL, or a clearly reported fallback | Compatibility with every operation and parameter |
 | Generate test image / Test text inference | A real image/chat call for the chosen model | Other modalities or deployments |
-| A workflow that returns and saves media | End-to-end execution for that connection, model, and request | Arbitrary native workflow equivalence or future catalog availability |
+| A workflow that returns and saves media | End-to-end execution for that connection, model, and request | Other models, request settings, or future service availability |
 
 The manager's test-image and test-text actions require explicit inference consent
 and can incur charges. Video and speech are tested through their workflows.
 Existing video IDs can test retrieval without another creation request.
-
-For maintainers, run the automated checks in an environment with the ComfyUI
-tensor/audio dependencies and pytest available:
-
-```bash
-python -m pytest -q
-node --test tests/test_ui.mjs tests/test_manager.mjs
-node --check web/ecohash.js
-git diff --check
-```
-
-Automated tests cover simulated services and error paths; they do not certify
-every live deployment. Real image and dedicated-video verification records are
-under [`tests`](../tests/), with historical versus current behavior identified.
 
 When reporting a problem, include the plugin commit/version, ComfyUI/frontend
 versions, node class, selected model ID, redacted API prefix, error details, and
