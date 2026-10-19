@@ -1,30 +1,44 @@
-# 非标准专有视频实例的服务端请求映射
+# Server-side request mappings for nonstandard dedicated video services
 
-标准实例无需配置此功能。节点仍然只需要连接、模型、提示词、时长和尺寸。
-对于必须使用原生 JSON 创建任务的已有部署，可由 ComfyUI 服务管理员在插件的
-`connections.json` 中为现有连接增加 `video_requests`。这是本地兼容桥接，
-没有修改或部署 EcoLink；长期应由平台统一实例创建请求和能力元数据。
+Standard compatible services do not need this feature. Their nodes require only
+a connection, model, prompt, duration and size. For an existing deployment that
+requires native JSON fields to create a video task, a ComfyUI server administrator
+can add a `video_requests` entry to that connection in the plugin's local
+`connections.json`.
 
-映射只支持 `/videos` 创建 JSON，查询和下载仍使用 `/videos/{id}`、
-`/videos/{id}/content`，不会改写调用地址或按品牌匹配模型。需要参考媒体的生成任务不在此功能范围内。
+This is a deployment-specific compatibility bridge. It does not change or deploy
+EcoLink; platform-level normalization of instance requests and capability metadata
+remains a service responsibility. No protocol or native-parameter selector is
+added to nodes or workflow JSON. See the [User Guide](USER_GUIDE.md#16-required-inference-api-behavior)
+for the ordinary API contract and limits.
 
-以下是结构示例，字段值必须以实际部署的接口文档和验证结果为准，不能直接用于任意实例：
+Mappings affect only the JSON creation payload at `/videos`. Polling and download
+still use `/videos/{id}` and `/videos/{id}/content`. They do not rewrite API routes,
+classify model families, execute arbitrary ComfyUI graphs, or add reference inputs.
+
+## Configuration example
+
+The following illustrates the structure, not a ready-to-use adapter. Replace the
+URL, exact served model ID, identity constraints, supported capabilities and native
+request fields with values established from the actual deployment's documentation
+and verification.
 
 ```json
 {
   "version": 1,
   "connections": {
     "studio": {
-      "base_url": "https://service.example/v1",
-      "api_key": "KEEP_EXISTING_KEY",
+      "name": "My instance",
+      "base_url": "https://api.ecohash.com/inference-instances/INSTANCE_ID/proxy/v1",
       "video_requests": {
         "exact-served-model-id": {
-          "base_url": "https://service.example/v1",
+          "base_url": "https://api.ecohash.com/inference-instances/INSTANCE_ID/proxy/v1",
           "requires": {"pipeline_class": "DeploymentPipeline"},
           "capabilities": {
             "category": "video",
             "input_modalities": ["text"],
             "output_modalities": ["video"],
+            "supported_resolutions": ["768p"],
             "video_min_duration_seconds": 4,
             "video_max_duration_seconds": 15
           },
@@ -45,24 +59,52 @@
 }
 ```
 
-请在已有连接记录中合并映射，保留密钥；不要用示例覆盖整个文件。该文件包含凭据，
-应保持仅当前用户可读写，不提交版本库。连接设置 API 仅返回脱敏摘要，不返回映射或密钥；
-在界面中修改连接名称、超时等会保留映射。模型列表仅展示映射声明的能力信息。
+**Merge the mapping into the existing connection record; do not replace the whole
+file with this example.** UI-created connections have generated IDs: use that
+existing ID rather than creating a new `studio` record accidentally. Preserve the
+saved global `public` key record and all other connections. Official EcoHash URLs
+reference the global key and need no key in their own record. An independent
+origin still needs its separate endpoint key.
 
-只有准确的 URL（包括 API 前缀）和模型 ID 才能选中映射；`requires` 必须非空，
-其中声明的字段必须与实时 `/models` 返回的部署信息逐项一致。当前支持校验
-`pipeline_class`、`pipeline_name`、`task_type`、`root` 及已公开的能力字段。
-映射身份不匹配或无法获取实时信息时，在创建前报错；不会切换到另一个模型、猜协议或重发生成请求。
-URL 或模型 ID 变化后，旧映射不再适用，使用默认标准请求。
+This file contains credentials and stays outside version control. Preserve its
+access permissions and protect backups. The settings API returns neither the
+mapping nor saved keys. Editing a connection's name or timeout in the manager
+preserves its mapping. Discovery can expose only the declared, verified capability
+metadata to the frontend.
 
-`request` 是 JSON 模板，仅支持类型保持的 `{"$input":"名称"}` 替换，不执行代码。
-可引用 `model`、`prompt`、`duration`、`resolution`、`width`、`height`、`short_edge`、
-`aspect_ratio`、`size`。宽高为当前尺寸预设或自定义尺寸，`short_edge` 是其中较小值，
-预设尺寸保留所选画面比例，自定义尺寸的比例由宽高约分获得，`size` 为 `宽x高`。
-映射必须原样保留所选模型和提示词。
-步数等固定原生参数属于部署配置，不进入节点或工作流。默认值应随部署版本更新并重新验证。
+## Matching and validation
 
-`capabilities` 可声明真实的类别、输入/输出模态、支持尺寸/分辨率以及时长上下限；
-没有可靠依据的能力应留空。生成前会校验声明的时长和分辨率限制。未映射模型仍走默认标准请求。
-修改映射会使模型发现和节点执行缓存失效；无论请求采用何种表示，创建 POST 均不会自动重试。
-已有任务恢复只查询和下载，不执行映射，也不再次生成。
+The mapping is selected by the exact API prefix, including its path, and exact
+served model ID. `requires` must be a nonempty object. Every field it specifies
+must match live `/models` metadata before creation. Known identity fields include
+`pipeline_class`, `pipeline_name`, `task_type` and `root`, together with exposed
+capability fields.
+
+An identity mismatch or unavailable live metadata stops the mapped request before
+submission. The plugin does not guess a new model, choose a native protocol from
+a model name, or retry generation. If the configured URL or model ID changes,
+the old mapping no longer applies and the default standard request is used.
+
+`request` is a JSON template with typed `{"$input":"name"}` substitutions. No code
+is evaluated. Available input names are:
+
+| Input | Value |
+| --- | --- |
+| `model`, `prompt` | The selected model ID and prompt, which the mapping must preserve |
+| `duration` | Requested whole seconds |
+| `resolution` | Selected resolution label |
+| `width`, `height` | Dimensions from the preset or explicit custom size |
+| `short_edge` | The smaller dimension |
+| `aspect_ratio` | Selected preset ratio; for custom dimensions, the reduced width/height ratio |
+| `size` | The `widthxheight` string |
+
+Fixed native defaults such as inference steps belong to the deployment mapping,
+not to node widgets or workflow JSON. Reverify them when a deployment changes.
+Capabilities may declare real categories, modalities, supported sizes/resolutions,
+and duration limits. Leave unverified capabilities unspecified. Duration and
+resolution limits declared here are checked before mapped creation; metadata
+does not establish arbitrary backend behavior beyond the verified contract.
+
+Mapping changes invalidate discovery and affected node execution cache signatures.
+All creation POSTs remain single-attempt. Resuming an existing task queries and
+downloads it without applying a creation mapping or creating another task.

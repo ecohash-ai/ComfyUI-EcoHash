@@ -214,6 +214,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     chooser.setAttribute("aria-label", uiText("Connection / 连接"));
     const toolbar = element("div", undefined, "eh-row");
     const add = element("button", "Add connection / 添加连接");
+    add.type = "button";
     toolbar.append(chooser, add);
     root.append(toolbar);
     const form = element("form");
@@ -484,7 +485,9 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         textConsent.checked = false;
         message("Text inference passed. / 文本推理成功。");
     });
-    reload().catch((error) => message(error.message, true));
+    // Keep the form inert until its initial profile load finishes. Otherwise a
+    // late response can replace a new-connection draft while the user edits it.
+    operation("Loading connections… / 正在读取连接…", () => reload(initialId));
 }
 
 function showManager(id = "public", node) {

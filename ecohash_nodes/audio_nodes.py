@@ -33,7 +33,7 @@ def _tts_inputs(model_input, voice=""):
 
 def _speak(model, text, voice, speed, endpoint=None):
     if not voice.strip():
-        raise client.EcoHashError("Choose or enter a voice ID supported by the selected TTS model. Use the node's model information for available voices.")
+        raise client.EcoHashError("Choose or enter a voice ID supported by the selected TTS model. Refresh models and check the voice selector or model tooltip for available voices.")
     options = {"endpoint": endpoint} if endpoint is not None else {}
     wav = client.request_bytes("POST", "/audio/speech", json_body={
         "model": model, "input": text, "voice": voice,

@@ -101,7 +101,23 @@ def load_api_key() -> str:
     raise EcoHashAuthError(_KEY_HELP)
 
 
-def _raise_for_status(resp, endpoint=None) -> None:
+def _response_detail(resp):
+    """Extract a validation message, never an arbitrary response-body dump."""
+    try:
+        payload = resp.json()
+    except ValueError:
+        return ""
+    if not isinstance(payload, dict):
+        return ""
+    detail = payload.get("detail") or payload.get("error") or payload.get("message")
+    if isinstance(detail, dict):
+        detail = detail.get("message")
+    elif isinstance(detail, list):
+        detail = "; ".join(item["msg"] for item in detail if isinstance(item, dict) and isinstance(item.get("msg"), str))
+    return detail.strip() if isinstance(detail, str) else ""
+
+
+def _raise_for_status(resp, endpoint=None, *, api_key=None) -> None:
     if endpoint is not None:
         if resp.status_code < 300:
             return
@@ -120,18 +136,8 @@ def _raise_for_status(resp, endpoint=None) -> None:
         if resp.status_code in (400, 405, 409, 422, 500, 502, 503):
             # Show validation reasons, never arbitrary response dumps or request
             # payloads. Invalid endpoint parameters should be actionable.
-            try:
-                payload = resp.json()
-            except ValueError:
-                payload = None
-            detail = None
-            if isinstance(payload, dict):
-                detail = payload.get("detail") or payload.get("error") or payload.get("message")
-                if isinstance(detail, dict):
-                    detail = detail.get("message")
-                elif isinstance(detail, list):
-                    detail = "; ".join(item["msg"] for item in detail if isinstance(item, dict) and isinstance(item.get("msg"), str))
-            if isinstance(detail, str) and detail.strip():
+            detail = _response_detail(resp)
+            if detail:
                 message += " " + detail.replace(endpoint.api_key, "[REDACTED]")[:400]
         if 300 <= resp.status_code < 400:
             message = "Dedicated inference redirected the request. Configure the final API base_url directly."
@@ -142,7 +148,10 @@ def _raise_for_status(resp, endpoint=None) -> None:
         return
     message = _STATUS_MESSAGES.get(resp.status_code)
     if message is None:
-        message = f"EcoHash API error {resp.status_code}: {resp.text[:300]}"
+        message = f"EcoHash API error {resp.status_code}."
+        detail = _response_detail(resp)
+        if detail and api_key:
+            message += " " + detail.replace(api_key, "[REDACTED]")[:400]
     if resp.status_code == 401:
         raise EcoHashAuthError(message)
     raise EcoHashError(message)
@@ -167,8 +176,10 @@ def _request(method: str, path: str, *, json_body=None, data=None, files=None, t
             raise EcoHashError(
                 f"Cannot reach dedicated inference API ({type(exc).__name__}). Check base_url, connectivity and timeout."
             ) from None
-        raise EcoHashError(f"Cannot reach EcoHash API: {exc}") from exc
-    _raise_for_status(resp, endpoint)
+        # InvalidHeader and similar exceptions may contain the Authorization
+        # value. Error reports must not echo transport exceptions verbatim.
+        raise EcoHashError(f"Cannot reach EcoHash API ({type(exc).__name__}). Check connectivity and API key format.") from None
+    _raise_for_status(resp, endpoint, api_key=key)
     return resp
 
 
@@ -181,7 +192,7 @@ def request_json(method: str, path: str, *, json_body=None, data=None, files=Non
         )
     try:
         result = resp.json()
-    except ValueError as exc:
+    except ValueError:
         # A 2xx with a body that isn't JSON does happen (observed once: an empty body on
         # /chat/completions, which succeeded on retry). Decoding outside this guard would
         # surface a bare requests.exceptions.JSONDecodeError traceback in ComfyUI instead
@@ -192,9 +203,8 @@ def request_json(method: str, path: str, *, json_body=None, data=None, files=Non
             ) from None
         raise EcoHashError(
             f"EcoHash returned a {resp.status_code} response that is not valid JSON "
-            f"({len(resp.content)} bytes). This is usually transient — retry. "
-            f"Body starts: {resp.text[:200]!r}"
-        ) from exc
+            f"({len(resp.content)} bytes). Check service status before submitting another request."
+        ) from None
     if not isinstance(result, dict):
         raise EcoHashError("Inference API must return a JSON object. Check the endpoint's response format.")
     return result

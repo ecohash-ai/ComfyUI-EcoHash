@@ -129,3 +129,32 @@ def test_non_json_success_body_becomes_ecohash_error(monkeypatch):
     monkeypatch.setattr(client.requests, "request", lambda *a, **k: FakeResp())
     with pytest.raises(client.EcoHashError, match="not valid JSON"):
         client.request_json("POST", "/chat/completions", json_body={})
+
+
+def test_public_validation_errors_redact_the_active_key(monkeypatch):
+    monkeypatch.setenv("ECOHASH_API_KEY", "eco_private_key")
+    response = _mock_response(400, {"error": {"message": "Unsupported size; eco_private_key", "request": "private prompt"}})
+    monkeypatch.setattr(client.requests, "request", lambda *a, **k: response)
+    with pytest.raises(client.EcoHashError, match="Unsupported size") as error:
+        client.request_json("POST", "/images/generations", json_body={})
+    assert "eco_private_key" not in str(error.value)
+    assert "private prompt" not in str(error.value)
+
+
+@pytest.mark.parametrize("failure", ["transport", "invalid_json", "html_error"])
+def test_public_errors_never_echo_transport_or_raw_response_secrets(monkeypatch, failure):
+    secret = "eco_private_key"
+    monkeypatch.setenv("ECOHASH_API_KEY", secret)
+    if failure == "transport":
+        def request(*args, **kwargs):
+            raise requests.exceptions.InvalidHeader(f"Authorization: Bearer {secret}")
+    else:
+        response = _mock_response(200 if failure == "invalid_json" else 500, content=secret.encode())
+        response.text = secret
+        response.json.side_effect = ValueError(secret)
+        request = lambda *args, **kwargs: response
+    monkeypatch.setattr(client.requests, "request", request)
+    with pytest.raises(client.EcoHashError) as error:
+        client.request_json("POST", "/chat/completions", json_body={})
+    assert secret not in str(error.value)
+    assert error.value.__suppress_context__ or failure == "html_error"

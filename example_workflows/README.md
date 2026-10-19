@@ -5,7 +5,7 @@ Configure credentials in the **EcoHash** sidebar / **Connections** dialog before
 
 - `text_to_image.json`: public Image Generate → Preview Image.
 - `dedicated_text_to_image.json`: Dedicated Image Generate → Preview Image. Configure
-  `dedicated` (or choose a named connection), then replace `YOUR_DEPLOYED_MODEL_ID`.
+  a connection, select it in the node, then replace `YOUR_DEPLOYED_MODEL_ID`.
 - `enhance_then_generate.json`: public LLM prompt enhancement → Image Generate → Preview Image.
 - `describe_and_regenerate.json`: Load Image → public VLM Describe → Image Generate → Preview Image.
 - `tts_voiceover.json`: public TTS → Preview Audio.
@@ -20,8 +20,9 @@ Configure credentials in the **EcoHash** sidebar / **Connections** dialog before
 - `dedicated_speech_roundtrip.json`: Dedicated TTS → Dedicated STT → Preview as Text, with an audio preview. Select each deployment's connection and replace model/voice placeholders.
 
 `describe_and_regenerate.json` references ComfyUI's sample `example.png`; select your own
-input if that file is absent (also applies to the Dedicated version). Dedicated examples default
-to `dedicated`; select a separate connection per node when models run on different instances.
+input if that file is absent (also applies to the Dedicated version). Dedicated examples start
+with an empty connection selection; select a saved connection per node. Models on different
+instances can use different connections.
 Dedicated STT accepts AUDIO from Load Audio, a TTS node or another audio source; its STRING output
 can feed a Dedicated LLM or an image prompt. A shared
 workflow contains only connection IDs and model IDs; recipients configure matching IDs
@@ -31,3 +32,6 @@ Image examples include optional dimension/connection defaults, the seed companio
 and named widget values. The original public node-chain smoke test is recorded in
 `../tests/SMOKE_RESULTS.md`. Dedicated and connection-manager verification is tracked in
 `../tests/DEDICATED_RESULTS.md`.
+
+See the [complete User Guide](../docs/USER_GUIDE.md) for step-by-step configuration,
+all node parameters, task recovery, caching and deployment compatibility.

@@ -35,6 +35,9 @@ starter credit so you can try the nodes before adding a payment method. Full doc
 
 ## Install
 
+For complete setup instructions, all fourteen nodes, example workflows, video-task
+recovery, API compatibility and troubleshooting, read the **[User Guide](docs/USER_GUIDE.md)**.
+
 **Option A — ComfyUI-Manager**
 
 Open ComfyUI-Manager, search for `EcoHash`, and install "ComfyUI-EcoHash".
@@ -153,6 +156,8 @@ Get or manage your key in the [API keys guide](https://docs.ecohash.com/getting-
 | **EcoHash Dedicated VLM Describe** | `image`, deployed `model`, `prompt`, `max_tokens`, optional `connection` | `STRING` | Describe an image with a dedicated vision-language model. |
 | **EcoHash Dedicated TTS** | deployed `model`, `text`, model-specific `voice`, `speed`, optional `connection` | `AUDIO` | Generate speech with a dedicated model. |
 | **EcoHash Dedicated STT** | `audio`, deployed `model`, `language`, optional `connection` | `STRING` | Transcribe audio with a dedicated model. |
+| **EcoHash Video Generate** | `model`, `prompt`, `duration`, `aspect_ratio`, `resolution`, `generate_audio`, optional `job_id`/`wait_timeout` | `VIDEO`, job-ID `STRING` | Generate a public text-to-video task, then connect VIDEO to Save Video. |
+| **EcoHash Dedicated Video Generate** | deployed `model`, `prompt`, `duration`, `aspect_ratio`, `resolution`, optional custom `width`/`height`, `job_id`/`wait_timeout`, `connection` | `VIDEO`, job-ID `STRING` | Generate or resume video on the selected dedicated service. |
 
 Public model menus initially use the cache or packaged snapshot without blocking node loading
 on the network. The frontend refreshes separately; **Refresh models** updates menus and reports
@@ -223,7 +228,8 @@ For language models, use **EcoHash Dedicated LLM** with the same four modes as t
 Its STRING output can feed either a public or dedicated image node. Use **EcoHash Dedicated VLM
 Describe** for a model that supports image inputs. For audio, use **EcoHash Dedicated TTS/STT**;
 enter the model's actual voice ID for TTS. Each node independently selects its connection, so
-language, image and audio deployments can use different URLs and keys in one workflow.
+language, image and audio deployments can use different URLs in one workflow. Official
+EcoHash connections share the global key; independent services use their own endpoint keys.
 
 Image, chat and speech nodes use a **synchronous, OpenAI-compatible API**. Deployments implement the
 routes needed by their model type; they do not need to implement every route:
@@ -328,8 +334,13 @@ without another generation. Clear `job_id` to generate a new video. Stopping Com
 local waiting; the remote job may continue. Signed result URLs and content redirects are fetched
 without forwarding the inference key. Downloads are limited to 512 MiB per video.
 
-Connection checks appear in the connection manager. Nodes show model information and execution
-status without a separate connection-status field; discovery errors appear with model information.
+Connection checks appear in the connection manager. Nodes show execution status; model capability
+information is available in selector tooltips. There is no separate model-information or
+connection-status row.
+
+These API nodes return completed media, not MODEL/CLIP/VAE/LATENT objects. A native diffusion
+template's weight-loading, LoRA, sampler and decoder nodes cannot all remain active controls of
+the API call. See [workflow composition and native-template limits](docs/USER_GUIDE.md#12-compose-public-and-dedicated-models).
 
 Examples: [`text_to_video.json`](example_workflows/text_to_video.json) and
 [`dedicated_text_to_video.json`](example_workflows/dedicated_text_to_video.json).
@@ -358,7 +369,7 @@ per-model pricing at **[the billing docs](https://docs.ecohash.com/billing/plans
 ## Local verification
 
 Using a ComfyUI Python environment (including PyTorch, Pillow, NumPy and aiohttp), install
-pytest and run `python -m pytest -q`. Frontend helper checks use `node --test tests/test_ui.mjs`;
+pytest and run `python -m pytest -q`. Frontend checks use `node --test tests/test_ui.mjs tests/test_manager.mjs`;
 no frontend build step is required. The tests isolate credentials and use temporary local HTTP
 services. See [`tests/DEDICATED_RESULTS.md`](tests/DEDICATED_RESULTS.md) for the running-ComfyUI
 verification and the remaining checks for a real dedicated deployment.

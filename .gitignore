@@ -6,3 +6,4 @@ connections.json
 .ecohash-*
 .pytest_cache/
 .superpowers/
+local-review/

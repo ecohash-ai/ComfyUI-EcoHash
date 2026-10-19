@@ -69,7 +69,8 @@ def _download(url, target, timeout, check_interrupt, *, endpoint=None, authentic
                     url = urljoin(url, location)
                     headers = {}
                     continue
-                client._raise_for_status(response, endpoint if authenticated else None)
+                client._raise_for_status(response, endpoint if authenticated else None,
+                                         api_key=headers.get("Authorization", "").removeprefix("Bearer "))
                 if not response.ok:
                     raise client.EcoHashError("Cannot download the completed video.")
                 count = 0
