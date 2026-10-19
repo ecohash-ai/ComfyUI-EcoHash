@@ -19,7 +19,7 @@ def test_dedicated_schema_is_manual_and_connection_changes_invalidate_cache(node
     schema = node.INPUT_TYPES()
     assert schema["required"]["model"][0] == "STRING"
     assert not ({"api_key", "base_url"} & schema["required"].keys())
-    assert schema["optional"]["connection"][1]["default"] == "dedicated"
+    assert schema["optional"]["connection"][1]["default"] == ""
     connections.save_connection("studio", {"base_url": "https://private.example/v1", "api_key": "private-key"})
     original = node.IS_CHANGED(connection="studio")
     connections.save_connection("studio", {"api_key": "rotated-key"})

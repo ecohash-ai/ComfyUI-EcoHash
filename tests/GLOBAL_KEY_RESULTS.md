@@ -37,3 +37,23 @@ helper; the plugin's new official-connection resolver ignores per-connection key
 Keys stay on the ComfyUI server and are not serialized into workflows.
 
 Redacted local evidence: `/private/tmp/ecohash-global-key-live.json`.
+
+## Connection list and naming follow-up
+
+The unused default dedicated endpoint is no longer listed without an explicitly configured
+URL. Dedicated node schemas and example templates start with an empty connection selection,
+which is a UI state rather than a fabricated endpoint. An explicit environment/INI endpoint
+remains available when configured. Missing selections are rejected before inference.
+
+The list, Connection name field and node picker now share one human-readable name.
+Internal IDs are generated automatically and are absent from normal and advanced settings.
+Duplicate names (including case-only variants) are rejected; renaming keeps the connection ID.
+Empty selections open the new-connection form without querying a nonexistent endpoint.
+
+The complete Python suite passed 226 tests; frontend helpers passed 23 tests. The live
+settings API listed only the current public connection and the saved Qwen connection.
+All seven dedicated node schemas listed only the empty selection and that actual connection;
+none included a default `dedicated` option. Browser inspection confirmed the default option
+and ID suffixes were gone, with Connection name matching the list and no ID input even in
+Advanced settings. No inference was submitted. Read-only evidence:
+`/private/tmp/ecohash-connection-naming.json`.

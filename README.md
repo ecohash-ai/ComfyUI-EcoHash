@@ -66,10 +66,10 @@ node, or use **Extensions → EcoHash → EcoHash connections**.
 
 1. Enter your key once in **EcoHash API Key** and click **Save and verify API Key**.
    Public models (A) and dedicated EcoHash instances (B) share this global credential.
-2. For dedicated models, click **Add connection**, enter a display name and API URL,
-   then **Save and connect**. EcoHash connections need no separate key. Connection IDs
-   are generated automatically; stable IDs, timeouts and independent keys for third-party
-   endpoints remain under **Advanced connection settings**.
+2. For dedicated models, click **Add connection**, enter a unique **Connection name** and API URL,
+   then **Save and connect**. The list and nodes display that same name. EcoHash connections
+   need no separate key. IDs are generated internally; timeouts and independent keys for
+   third-party endpoints remain under **Advanced connection settings**.
 3. Saving checks the model list without running inference. When opened from a dedicated
    node, the manager also applies the saved connection to that node. A service without
    `/models` is reported as reachable, with authentication/inference still unverified.
@@ -97,10 +97,12 @@ invalidates their model-discovery and node-execution caches. The key is referenc
 copied into each connection record. `ECOHASH_DEDICATED_API_KEY` applies only to independent
 endpoints; EcoHash connections always read `ECOHASH_API_KEY` / the global setting.
 
-Each Dedicated node has an optional `connection` selection; existing workflows default
-to `dedicated`. Multiple independent deployments can run in one workflow. Shared workflows store
-only connection IDs and model IDs. Recipients create the same ID locally or select another
-connection. Missing IDs produce a mapping error and never fall back to another deployment.
+Each Dedicated node selects a real saved connection. No empty default dedicated endpoint is
+listed. A new node selects a connection automatically only when it is unambiguous or was
+explicitly preferred; otherwise it prompts for a selection. Multiple deployments can run
+in one workflow. Workflows store internal connection IDs and model IDs; recipients select
+their own local connection. Missing connections never silently fall back to another deployment.
+Renaming a connection keeps its internal ID and updates its name in the list and nodes.
 The public nodes use `public`.
 
 The manager configures this ComfyUI server. Use it from the same trusted server environment
@@ -380,9 +382,11 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 
 **界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **连接设置**。
 在顶部 **全局 API Key** 填写一次，点击 **保存并验证 API Key**，公共模型和 EcoHash 专有实例共用。
-专有模型添加连接时只填写显示名称和 API 地址，点击 **保存并连接**。
+专有模型添加连接时只填写一个 **连接名称** 和 API 地址，点击 **保存并连接**。
+连接列表和节点都显示同一个名称，禁止重名；内部 ID 自动生成，不在界面中另外命名。
+未配置地址的默认专有连接不再出现在列表中。
 从节点打开设置时会直接绑定该连接，再选择已发现的模型或手动填写 ID。
-连接 ID 自动生成，超时和第三方端点的独立密钥放在高级设置中；连接检查只读取模型列表。
+超时和第三方端点的独立密钥放在高级设置中；连接检查只读取模型列表。
 全局密钥仅用于 `https://api.ecohash.com` 官方地址（默认 HTTPS 端口），更换后所有 EcoHash
 连接立即生效，相关模型发现和节点缓存失效。第三方地址不会自动取得全局密钥。
 语言、图像的实际推理测试需另行确认；TTS/STT 在工作流中连接音频节点验证。

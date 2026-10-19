@@ -111,7 +111,7 @@ class EcoHashDedicatedVideoGenerate(DedicatedNode, EcoHashVideoGenerate):
         return hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()
 
     @classmethod
-    def VALIDATE_INPUTS(cls, resolution="720p", connection="dedicated"):
+    def VALIDATE_INPUTS(cls, resolution="720p", connection=""):
         valid = DedicatedNode.VALIDATE_INPUTS(connection=connection)
         return valid if valid is not True else EcoHashVideoGenerate.VALIDATE_INPUTS(resolution)
 

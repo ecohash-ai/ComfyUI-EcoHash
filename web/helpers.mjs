@@ -1,4 +1,5 @@
 export const isDedicated = (type) => type.startsWith("EcoHashDedicated");
+export const connectionLabel = (profile) => profile.name;
 
 export function isEcoHashUrl(value) {
     try {
@@ -146,7 +147,7 @@ export function capabilityHint(model, type, locale = "en") {
 export function connectionOptions(profiles, current) {
     const ids = profiles.filter((profile) => profile.id !== "public").map((profile) => profile.id);
     if (current && !ids.includes(current)) ids.push(current); // Preserve a missing workflow alias for explicit remapping.
-    return ids.length ? ids : ["dedicated"];
+    return ["", ...ids]; // Empty selection is a UI state, never an endpoint.
 }
 
 export function connectionHint(profiles, id, locale = "en") {

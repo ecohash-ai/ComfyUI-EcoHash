@@ -10,8 +10,8 @@ from tests.test_client import _mock_response
 from tests.test_conversions import _png_b64
 
 
-def save(name="studio", **kwargs):
-    return connections.save_connection(name, {"name": name, "base_url": "https://private.example/v1", "api_key": "private-secret", **kwargs})
+def save(connection_id="studio", **kwargs):
+    return connections.save_connection(connection_id, {"name": connection_id, "base_url": "https://private.example/v1", "api_key": "private-secret", **kwargs})
 
 
 def test_named_profiles_persist_redacted_and_private():
@@ -20,8 +20,8 @@ def test_named_profiles_persist_redacted_and_private():
     assert "private-secret" not in json.dumps(profile)
     assert connections.resolve("studio").api_key == "private-secret"
     assert stat.S_IMODE(connections.CONNECTIONS_PATH.stat().st_mode) == 0o600
-    assert connections.connection_ids() == ["public", "dedicated", "studio"]
-    assert connections.connection_ids(dedicated_only=True) == ["dedicated", "studio"]
+    assert connections.connection_ids() == ["public", "studio"]
+    assert connections.connection_ids(dedicated_only=True) == ["studio"]
 
 
 def test_blank_key_keeps_secret_and_renaming_keeps_id():
@@ -41,10 +41,35 @@ def test_copied_operation_urls_are_normalized_to_the_existing_api_prefix(suffix)
 def test_unconfigured_connection_is_reported_before_execution():
     node = image_nodes.EcoHashDedicatedImageGenerate
     assert node.IS_CHANGED(connection="dedicated") == "unconfigured:dedicated"
-    assert "Select your saved connection" in node.VALIDATE_INPUTS(connection="dedicated")
+    assert "not configured" in node.VALIDATE_INPUTS(connection="dedicated")
     save("dedicated")
     assert node.VALIDATE_INPUTS(connection="dedicated") is True
     assert node.IS_CHANGED(connection="dedicated") != "unconfigured:dedicated"
+
+
+def test_no_default_dedicated_endpoint_is_advertised_without_an_explicit_url(monkeypatch):
+    assert connections.connection_ids() == ["public"]
+    assert [item["id"] for item in connections.list_connections()] == ["public"]
+    assert connections.connection_ids(dedicated_only=True) == []
+    choices, options = image_nodes.EcoHashDedicatedImageGenerate.connection_input()
+    assert choices == [""] and options["default"] == ""
+    assert "Select a dedicated connection" in image_nodes.EcoHashDedicatedImageGenerate.VALIDATE_INPUTS()
+    monkeypatch.setenv("ECOHASH_DEDICATED_BASE_URL", "https://private.example/v1")
+    assert connections.connection_ids(dedicated_only=True) == ["dedicated"]
+    assert connections.list_connections()[1]["base_url"] == "https://private.example/v1"
+
+
+def test_duplicate_connection_names_are_rejected_without_changing_the_existing_record():
+    save("one", name="Production")
+    with pytest.raises(client.EcoHashError, match="Connection name already exists"):
+        save("two", name="production")
+    assert connections.connection_ids() == ["public", "one"]
+    save("two", name="Staging")
+    with pytest.raises(client.EcoHashError, match="Connection name already exists"):
+        connections.save_connection("two", {"name": "Production"})
+    assert connections.summary("two")["name"] == "Staging"
+    connections.save_connection("one", {"name": "Renamed"})
+    assert connections.resolve("one").base_url == "https://private.example/v1"
 
 
 @pytest.mark.parametrize("model_id", ["MiniMaxAI/MiniMax-H3:247", "seedance-next", "wan3-next", "ltx-next"])

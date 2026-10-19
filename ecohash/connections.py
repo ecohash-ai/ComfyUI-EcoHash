@@ -14,7 +14,7 @@ from . import client
 CONNECTIONS_PATH = Path(__file__).resolve().parent.parent / "connections.json"
 _LOCK = threading.RLock()
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}\Z")
-BUILTINS = {"public": "EcoHash public API", "dedicated": "Default dedicated endpoint"}
+BUILTINS = {"public": "EcoHash public API", "dedicated": "Dedicated endpoint"}
 _OPERATION_PATHS = ("/images/generations", "/images/edits", "/chat/completions", "/audio/transcriptions", "/audio/speech", "/video/generations", "/videos")
 
 
@@ -64,7 +64,10 @@ def connection_ids(*, dedicated_only=False):
     names = set(_store())
     names.update(section[11:] for section in config.sections() if section.startswith("connection:") and _valid_id(section[11:]))
     names.difference_update(BUILTINS)
-    return (["dedicated"] if dedicated_only else ["public", "dedicated"]) + sorted(names)
+    # The environment/INI shortcut is a real connection only when it has a URL.
+    # Do not advertise an empty, automatically supplied dedicated endpoint.
+    dedicated = ["dedicated"] if values("dedicated")["base_url"] else []
+    return ([] if dedicated_only else ["public"]) + dedicated + sorted(names)
 
 
 def values(connection_id):
@@ -75,7 +78,7 @@ def values(connection_id):
     section = {"public": "ecohash", "dedicated": "dedicated"}.get(connection_id, f"connection:{connection_id}")
     if connection_id not in BUILTINS and saved is None and not config.has_section(section):
         raise client.EcoHashError(
-            f"Connection '{connection_id}' is not configured. Open EcoHash connections and create or map this connection ID."
+            f"Connection '{connection_id}' is not configured. Open EcoHash connections, add a connection and select it in the node."
         )
     saved = saved or {}
     result, sources = {}, {}
@@ -217,6 +220,11 @@ def save_connection(connection_id, payload):
             if str(payload.get("api_key", "")).strip():
                 raise client.EcoHashError("EcoHash connections use the global API Key. Save it once in EcoHash settings instead of on a connection.")
             record.pop("api_key", None)
+        if connection_id != "public":
+            name = record.get("name", config.get(section, "name", fallback=connection_id)).strip()
+            for other in connection_ids():
+                if other != connection_id and values(other)["name"].casefold() == name.casefold():
+                    raise client.EcoHashError("Connection name already exists. Choose a unique connection name.")
         store[connection_id] = record
         _write_store(store)
     return summary(connection_id)

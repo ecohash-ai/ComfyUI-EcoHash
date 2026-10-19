@@ -38,7 +38,7 @@
     "",
     0.7,
     1024,
-    "dedicated"
+    ""
    ]
   },
   {
@@ -86,7 +86,7 @@
     "fixed",
     1024,
     1024,
-    "dedicated"
+    ""
    ],
    "widgets_values_named": {
     "model": "YOUR_IMAGE_MODEL_ID",
@@ -97,7 +97,7 @@
     "width": 1024,
     "height": 1024,
     "control_after_generate": "fixed",
-    "connection": "dedicated"
+    "connection": ""
    }
   },
   {

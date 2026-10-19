@@ -1,12 +1,12 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionOptions, defaultConnection, isDedicated, isEcoHashUrl, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-15";
+import { capabilityHint, connectionLabel, connectionOptions, defaultConnection, isDedicated, isEcoHashUrl, localizedText, migrateVideoWorkflow, modelsForNode, replaceOptions, setWidgetVisible, singleModel } from "./helpers.mjs?v=connections-16";
 
 const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map(), preferred: null };
 let profilesRequest;
 const widget = (node, name) => node.widgets?.find((item) => item.name === name);
 const nodeType = (node) => node.comfyClass || node.type;
-const connectionId = (node) => isDedicated(nodeType(node)) ? widget(node, "connection")?.value || "dedicated" : "public";
+const connectionId = (node) => isDedicated(nodeType(node)) ? widget(node, "connection")?.value || "" : "public";
 function uiLocale() {
     let locale = navigator.language;
     // Extensions are imported before some frontend versions initialize their
@@ -20,7 +20,6 @@ const manualModel = uiText("Enter model ID manually / 手动填写模型 ID");
 const manualVoice = uiText("Enter voice ID manually / 手动填写音色 ID");
 const chooseModel = uiText("Select a model / 请选择模型");
 const chooseConnection = uiText("Select a connection / 请选择连接");
-const connectionLabel = (profile) => `${profile.name} (${profile.id})`;
 
 function modelError(node, error) {
     node._ehDiscoveryError = error.message;
@@ -61,6 +60,7 @@ async function loadProfiles() {
 }
 
 async function loadModels(id, refresh = false) {
+    if (!id) return { connection: "", models: [], discovery_supported: false, source: "unconfigured" };
     if (!refresh && state.models.has(id)) return state.models.get(id);
     if (!refresh && state.requests.has(id)) return state.requests.get(id);
     const version = (state.versions.get(id) || 0) + 1;
@@ -217,11 +217,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     toolbar.append(chooser, add);
     root.append(toolbar);
     const form = element("form");
-    const id = field(form, "Connection ID / 连接 ID", "connection_id");
-    id.pattern = "[A-Za-z0-9][A-Za-z0-9_-]{0,63}";
-    id.maxLength = 64;
-    id.required = true;
-    const name = field(form, "Display name / 显示名称", "name");
+    const name = field(form, "Connection name / 连接名称", "name");
     name.required = true;
     name.maxLength = 100;
     const url = field(form, "API base URL / API 前缀地址", "base_url", "url");
@@ -231,7 +227,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     timeout.min = "0.1";
     timeout.step = "any";
     const advanced = element("details");
-    advanced.append(element("summary", "Advanced connection settings / 高级连接设置"), id.parentElement, timeout.parentElement, key.parentElement);
+    advanced.append(element("summary", "Advanced connection settings / 高级连接设置"), timeout.parentElement, key.parentElement);
     form.append(advanced);
     const source = element("p", undefined, "eh-muted");
     form.append(source);
@@ -284,7 +280,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     docs.rel = "noopener noreferrer";
     root.append(docs);
 
-    let selectedId = initialId, dirty = false, busy = false, creating = false;
+    let selectedId = initialId, draftId, dirty = false, busy = false, creating = false;
     const message = (text, error = false) => { status.textContent = uiText(text); status.dataset.error = String(error); };
     function controls() {
         save.disabled = busy;
@@ -329,9 +325,8 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
             chooser.append(option);
         }
         chooser.value = value;
-        id.disabled = !create;
-        id.value = create && value === "__new__" ? `connection-${crypto.randomUUID().slice(0, 8)}` : value;
-        name.value = profile?.name || (value === "__new__" ? "" : value);
+        draftId = create && value === "__new__" ? `connection-${crypto.randomUUID()}` : value;
+        name.value = profile?.name || "";
         url.value = profile?.base_url || (create ? "https://api.ecohash.com/v1" : "");
         key.value = "";
         timeout.value = profile?.timeout || "300";
@@ -354,25 +349,19 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         textModel.value = "";
         textPreview.hidden = true;
         textPreview.textContent = "";
-        message(create ? "Enter a display name and API URL. EcoHash connections use the global API Key. / 填写显示名称和 API 地址，EcoHash 官方连接自动使用全局 API Key。" : state.checked.get(value)?.message || profile?.message || "Connection is missing. Add it with this ID, or choose another connection in the workflow. / 缺少连接，请创建同名连接或在节点中重新选择。");
+        message(create ? "Enter a connection name and API URL. EcoHash connections use the global API Key. / 填写连接名称和 API 地址，EcoHash 官方连接自动使用全局 API Key。" : state.checked.get(value)?.message || profile?.message || "Connection is missing. Select another connection or add one. / 缺少连接，请选择已有连接或添加连接。");
         controls();
     }
     async function reload(preferred = selectedId) {
         await loadProfiles();
         globalKeyControls();
         chooser.replaceChildren(...state.connections.map((item) => {
-            const option = element("option", `${item.name} (${item.id})`);
+            const option = element("option", connectionLabel(item));
             option.value = item.id;
             return option;
         }));
-        const missing = !state.connections.some((item) => item.id === preferred);
-        if (missing) {
-            const option = element("option", `Missing connection / 缺少连接: ${preferred}`);
-            option.value = preferred;
-            chooser.append(option);
-        }
-        chooser.value = preferred;
-        select(preferred, missing);
+        const selected = state.connections.some((item) => item.id === preferred) ? preferred : "__new__";
+        select(selected, selected === "__new__");
     }
     async function operation(label, fn) {
         busy = true;
@@ -382,7 +371,7 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         catch (error) { message(error.message, true); }
         finally { busy = false; controls(); }
     }
-    chooser.onchange = () => { select(chooser.value); if (selectedId !== "public") state.preferred = selectedId; };
+    chooser.onchange = () => { select(chooser.value, chooser.value === "__new__"); if (selectedId !== "public" && !creating) state.preferred = selectedId; };
     add.onclick = () => select("__new__", true);
     globalForm.onsubmit = (event) => {
         event.preventDefault();
@@ -415,12 +404,8 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
     form.onsubmit = (event) => {
         event.preventDefault();
         if (!form.reportValidity()) return;
-        if (creating && state.connections.some((item) => item.id === id.value.trim())) {
-            message("This connection ID already exists. Select it to edit its settings. / 连接 ID 已存在，请选择对应连接后编辑。", true);
-            return;
-        }
         operation("Saving… / 正在保存…", async () => {
-            const target = id.value.trim();
+            const target = draftId;
             const body = { name: name.value, ...(!url.disabled ? { base_url: url.value } : {}), ...(!timeout.disabled ? { timeout: timeout.value } : {}), ...(!key.disabled ? { api_key: key.value } : {}) };
             const saved = await request(`/connections/${encodeURIComponent(target)}`, "PUT", body);
             key.value = "";
@@ -477,7 +462,8 @@ function mountManager(root, initialId = "public", close, contextNode = selectedD
         for (const node of allNodes()) updateNode(node);
     });
     remove.onclick = () => operation("Removing… / 正在删除…", async () => {
-        const approved = await app.extensionManager.dialog.confirm({ title: uiText("Remove connection / 删除连接"), message: uiText(`Remove '${selectedId}'? Workflows using this ID will need another connection. / 删除连接 '${selectedId}'？使用此连接的工作流需要重新配置。`), type: "delete" });
+        const selectedName = state.connections.find((item) => item.id === selectedId)?.name || uiText("this connection / 此连接");
+        const approved = await app.extensionManager.dialog.confirm({ title: uiText("Remove connection / 删除连接"), message: uiText(`Remove '${selectedName}'? Workflows using it will need another connection. / 删除连接 '${selectedName}'？使用此连接的工作流需要重新配置。`), type: "delete" });
         if (!approved) return;
         await request(`/connections/${encodeURIComponent(selectedId)}`, "DELETE");
         invalidateModels(selectedId);

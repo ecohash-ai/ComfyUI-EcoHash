@@ -37,7 +37,7 @@ class DedicatedNode:
 
     @classmethod
     def connection_input(cls):
-        return (connections.connection_ids(dedicated_only=True), {"default": "dedicated"})
+        return ([""] + connections.connection_ids(dedicated_only=True), {"default": ""})
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
@@ -53,11 +53,13 @@ class DedicatedNode:
         return hashlib.sha256(settings.encode()).hexdigest()
 
     @classmethod
-    def VALIDATE_INPUTS(cls, connection="dedicated"):
+    def VALIDATE_INPUTS(cls, connection=""):
         # Dynamic connection combos need a mapping error when a shared workflow's
         # connection ID does not exist on the recipient's ComfyUI server.
+        if not connection:
+            return "Select a dedicated connection, or add one in EcoHash connections."
         if connection not in connections.connection_ids(dedicated_only=True):
-            return f"Connection '{connection}' is not configured. Open EcoHash connections and add or map that connection ID."
+            return f"Connection '{connection}' is not configured. Open EcoHash connections and select or add a connection."
         try:
             client.load_dedicated_endpoint(connection)
         except client.EcoHashError as exc:

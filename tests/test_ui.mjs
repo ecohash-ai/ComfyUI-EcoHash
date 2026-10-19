@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { modelsForNode, capabilityHint, connectionHint, connectionOptions, defaultConnection, isEcoHashUrl, localizedText, migrateVideoWorkflow, replaceOptions, setWidgetVisible, singleModel } from "../web/helpers.mjs";
+import { modelsForNode, capabilityHint, connectionHint, connectionLabel, connectionOptions, defaultConnection, isEcoHashUrl, localizedText, migrateVideoWorkflow, replaceOptions, setWidgetVisible, singleModel } from "../web/helpers.mjs";
 
 test("only the exact EcoHash HTTPS origin uses the global key", () => {
     for (const url of ["https://api.ecohash.com/v1", "https://API.ECOHASH.COM:443/inference-instances/999/proxy/v1/videos/"]) assert.equal(isEcoHashUrl(url), true);
@@ -59,10 +59,17 @@ test("discovery filters capabilities while retaining unknown private models", ()
 });
 
 test("missing workflow aliases remain available for explicit remapping", () => {
-    const profiles = [{ id: "public" }, { id: "dedicated", configured: false }, { id: "studio", configured: true, name: "Studio" }];
-    assert.deepEqual(connectionOptions(profiles, "missing"), ["dedicated", "studio", "missing"]);
+    const profiles = [{ id: "public" }, { id: "studio", configured: true, name: "Studio" }];
+    assert.deepEqual(connectionOptions(profiles, "missing"), ["", "studio", "missing"]);
     assert.match(connectionHint(profiles, "missing"), /missing/);
     assert.match(connectionHint(profiles, "studio"), /not yet tested/);
+});
+
+test("connection choices have one name and no synthetic default endpoint", () => {
+    assert.deepEqual(connectionOptions([{ id: "public" }], ""), [""]);
+    assert.equal(defaultConnection([{ id: "public", configured: true }]), null);
+    assert.equal(connectionLabel({ id: "internal-identifier", name: "My video model" }), "My video model");
+    assert.equal(connectionLabel({ id: "internal-identifier", name: "New name" }), "New name");
 });
 
 test("dedicated language nodes discover language models and preserve unknown private IDs", () => {

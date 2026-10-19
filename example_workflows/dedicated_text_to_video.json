@@ -47,7 +47,7 @@
         720,
         "",
         1800,
-        "dedicated"
+        ""
       ],
       "widgets_values_named": {
         "model": "YOUR_DEPLOYED_MODEL_ID",
@@ -59,7 +59,7 @@
         "height": 720,
         "job_id": "",
         "wait_timeout": 1800,
-        "connection": "dedicated"
+        "connection": ""
       }
     },
     {

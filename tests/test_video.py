@@ -216,7 +216,7 @@ def test_new_resolution_metadata_is_not_rejected_by_a_static_combo():
     connections.save_connection("studio", {"base_url": "https://private.example/v1", "api_key": "private-key"})
     assert EcoHashVideoGenerate.VALIDATE_INPUTS(resolution="1440p") is True
     assert EcoHashDedicatedVideoGenerate.VALIDATE_INPUTS(resolution="1440p", connection="studio") is True
-    assert "no API URL" in EcoHashDedicatedVideoGenerate.VALIDATE_INPUTS(resolution="1440p")
+    assert "Select a dedicated connection" in EcoHashDedicatedVideoGenerate.VALIDATE_INPUTS(resolution="1440p")
     width, height = video.dimensions("1440p", "16:9")
     assert video.build_request("openai", "future-video", "cat", 30, "16:9", "1440p", True,
                                width=width, height=height)["size"] == "2560x1440"
