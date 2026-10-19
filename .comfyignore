@@ -13,3 +13,8 @@ docs/
 __pycache__/
 *.pyc
 .pytest_cache/
+local-review/
+.idea/
+config.ini
+connections.json
+.ecohash-*
