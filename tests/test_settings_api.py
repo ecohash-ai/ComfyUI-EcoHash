@@ -49,6 +49,26 @@ def test_settings_routes_and_generation_are_explicit():
     asyncio.run(run())
 
 
+def test_text_test_requires_explicit_consent_and_uses_dedicated_chat_route():
+    async def run():
+        routes = web.RouteTableDef()
+        api_routes.register_routes(routes)
+        app = web.Application()
+        app.add_routes(routes)
+        connections.save_connection("language", {"base_url": "https://private.example/v1", "api_key": "private-key"})
+        async with TestClient(TestServer(app)) as browser:
+            headers = {"X-EcoHash-Settings": "1"}
+            with patch.object(client.requests, "request", return_value=_mock_response(payload={"choices": [{"message": {"content": "Hello"}}]})) as request:
+                response = await browser.post("/ecohash/connections/language/chat-test", json={"model": "private"}, headers=headers)
+                assert response.status == 400
+                request.assert_not_called()
+                response = await browser.post("/ecohash/connections/language/chat-test", json={"model": "private", "confirm_inference": True}, headers=headers)
+                assert response.status == 200
+                assert await response.json() == {"text": "Hello"}
+                assert request.call_args.args == ("POST", "https://private.example/v1/chat/completions")
+    asyncio.run(run())
+
+
 def test_api_invalid_inputs_do_not_disclose_keys():
     async def run():
         routes = web.RouteTableDef()

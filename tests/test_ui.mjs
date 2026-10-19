@@ -57,6 +57,23 @@ test("missing workflow aliases remain available for explicit remapping", () => {
     assert.match(connectionHint(profiles, "studio"), /not yet tested/);
 });
 
+test("dedicated language nodes discover language models and preserve unknown private IDs", () => {
+    const models = [
+        { id: "image", category: "image" },
+        { id: "text", category: "llm", input_modalities: ["text"] },
+        { id: "vision", category: "llm_vision", input_modalities: ["text", "image"] },
+        { id: "mislabelled-vision", category: "llm_vision", input_modalities: ["text"] },
+        { id: "unknown" },
+    ];
+    assert.deepEqual(modelsForNode(models, "EcoHashDedicatedLLM").map((m) => m.id), ["text", "vision", "mislabelled-vision", "unknown"]);
+    assert.deepEqual(modelsForNode(models, "EcoHashDedicatedVLMDescribe").map((m) => m.id), ["vision", "unknown"]);
+    assert.match(capabilityHint(models[2], "EcoHashDedicatedVLMDescribe", "zh"), /支持图片输入.*text, image/);
+    const audio = [{ id: "tts", category: "speech_tts", voices: ["speaker-a"] }, { id: "stt", category: "speech_stt" }];
+    assert.deepEqual(modelsForNode(audio, "EcoHashDedicatedTTS").map((m) => m.id), ["tts"]);
+    assert.deepEqual(modelsForNode(audio, "EcoHashDedicatedSTT").map((m) => m.id), ["stt"]);
+    assert.match(capabilityHint(audio[0], "EcoHashDedicatedTTS", "zh"), /音色: speaker-a/);
+});
+
 test("hints expose known capabilities and never invent private model support", () => {
     assert.match(capabilityHint({ id: "m", default_image_steps: 8, supports_image_edit: false }, "EcoHashImageGenerate"), /Default steps: 8/);
     assert.match(capabilityHint({ id: "m" }, "EcoHashTTS"), /Voice IDs vary/);

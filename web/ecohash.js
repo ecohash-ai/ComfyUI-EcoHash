@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { capabilityHint, connectionHint, connectionOptions, isDedicated, localizedText, modelsForNode, replaceOptions, setWidgetVisible } from "./helpers.mjs?v=connections-5";
+import { capabilityHint, connectionHint, connectionOptions, isDedicated, localizedText, modelsForNode, replaceOptions, setWidgetVisible } from "./helpers.mjs?v=connections-6";
 
 const state = { connections: [], models: new Map(), requests: new Map(), versions: new Map(), checked: new Map() };
 let profilesRequest;
@@ -184,6 +184,18 @@ function mountManager(root, initialId = "public", close) {
     preview.hidden = true;
     detail.append(confirm, generate, preview);
     root.append(detail);
+    const textDetail = element("details");
+    textDetail.append(element("summary", "Test text inference / 测试文本"));
+    const textModel = field(textDetail, "Language model ID / 语言模型 ID", "test_text_model");
+    const textConfirm = element("label");
+    const textConsent = element("input");
+    textConsent.type = "checkbox";
+    textConfirm.append(textConsent, document.createTextNode(uiText("This sends a real text inference request and may incur charges. / 此操作将实际调用语言模型，可能产生费用。")));
+    const complete = element("button", "Generate test text / 生成测试文本");
+    const textPreview = element("pre", undefined, "eh-text-preview");
+    textPreview.hidden = true;
+    textDetail.append(textConfirm, complete, textPreview);
+    root.append(textDetail);
     const docs = element("a", "Setup guide / 配置说明");
     docs.href = "https://github.com/ecohash-ai/ComfyUI-EcoHash#connection-manager";
     docs.target = "_blank";
@@ -199,10 +211,12 @@ function mountManager(root, initialId = "public", close) {
         test.disabled = discover.disabled = busy || dirty || creating;
         remove.disabled = busy || dirty || creating || !state.connections.find((item) => item.id === selectedId)?.can_delete;
         generate.disabled = busy || dirty || creating || !consent.checked || !modelInput.value.trim();
-        form.inert = detail.inert = busy;
+        complete.disabled = busy || dirty || creating || !textConsent.checked || !textModel.value.trim();
+        form.inert = detail.inert = textDetail.inert = busy;
     }
     form.oninput = () => { dirty = true; message("Unsaved changes. Save before testing. / 配置有修改，请先保存再测试。"); controls(); };
     consent.onchange = modelInput.oninput = controls;
+    textConsent.onchange = textModel.oninput = controls;
     function select(value, create = false) {
         selectedId = value;
         creating = create;
@@ -230,6 +244,10 @@ function mountManager(root, initialId = "public", close) {
         modelInput.value = "";
         preview.hidden = true;
         preview.removeAttribute("src");
+        textConsent.checked = false;
+        textModel.value = "";
+        textPreview.hidden = true;
+        textPreview.textContent = "";
         message(create ? "Enter a stable connection ID. Shared workflows refer to this ID. / 工作流通过连接 ID 引用配置。" : profile?.message || "Connection is missing. Add it with this ID, or choose another connection in the workflow. / 缺少连接，请创建同名连接或在节点中重新选择。");
         controls();
     }
@@ -303,6 +321,13 @@ function mountManager(root, initialId = "public", close) {
         preview.hidden = false;
         consent.checked = false;
         message(`Generation passed: ${result.width} × ${result.height}. / 测试出图成功：${result.width} × ${result.height}。`);
+    });
+    complete.onclick = () => operation("Generating text… / 正在生成文本…", async () => {
+        const result = await request(`/connections/${encodeURIComponent(selectedId)}/chat-test`, "POST", { model: textModel.value.trim(), confirm_inference: textConsent.checked });
+        textPreview.textContent = result.text;
+        textPreview.hidden = false;
+        textConsent.checked = false;
+        message("Text inference passed. / 文本推理成功。");
     });
     reload().catch((error) => message(error.message, true));
 }
@@ -381,7 +406,7 @@ app.registerExtension({
             model.callback?.(value);
             updateNode(node);
         }, { values: [manualModel], serialize: false });
-        if (type === "EcoHashTTS") node.addWidget("combo", "Choose voice", manualVoice, (value) => {
+        if (type.endsWith("TTS")) node.addWidget("combo", "Choose voice", manualVoice, (value) => {
             if (value !== manualVoice) widget(node, "voice").value = value;
         }, { values: [manualVoice], serialize: false });
         node.addWidget("button", "Refresh models / 刷新模型", null, async () => {
@@ -404,14 +429,15 @@ app.registerExtension({
             if (item.options?.serialize === false) item.label = uiText(labels[item.name] ? `${item.name} / ${labels[item.name]}` : item.name);
         }
         hookWidget(node, "connection", async () => {
+            if (type.endsWith("TTS")) widget(node, "voice").value = "";
             updateNode(node);
             widget(node, "Connection status").value = uiText("Loading models… / 正在读取模型…");
             try { await loadModels(connectionId(node)); updateNode(node); }
             catch (error) { widget(node, "Connection status").value = error.message; }
         });
         hookWidget(node, "model", () => {
-            if (type === "EcoHashTTS") {
-                const selected = state.models.get("public")?.models?.find((item) => item.id === widget(node, "model")?.value);
+            if (type.endsWith("TTS")) {
+                const selected = state.models.get(connectionId(node))?.models?.find((item) => item.id === widget(node, "model")?.value);
                 if (selected?.voices?.length) widget(node, "voice").value = selected.voices[0];
                 else if (widget(node, "model").value !== "kokoro-82m" && widget(node, "voice").value === "af_bella") widget(node, "voice").value = "";
             }

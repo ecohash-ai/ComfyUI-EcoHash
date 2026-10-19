@@ -134,6 +134,13 @@ def test_discovery_cache_changes_when_credentials_change():
     assert request.call_count == 2
 
 
+def test_discovery_ignores_malformed_optional_capabilities():
+    model = discovery._normalize_model({"id": "private", "display_name": {}, "category": [],
+        "supports_image_edit": "false", "default_image_steps": True,
+        "input_modalities": "image", "output_modalities": ["text", None], "voices": {"secret": "ignored"}})
+    assert model == {"id": "private", "name": "private", "output_modalities": ["text"]}
+
+
 def test_connection_test_does_not_generate_or_overclaim_404():
     save()
     with patch.object(client.requests, "request", return_value=_mock_response(404)) as request:

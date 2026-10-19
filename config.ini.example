@@ -10,7 +10,7 @@ api_key = eco_YOUR_KEY_HERE
 ; api_key = YOUR_DEDICATED_KEY_HERE
 ; timeout = 300
 
-; Optional named connections, selectable in Dedicated image nodes:
+; Optional named connections, selectable in all Dedicated nodes:
 ; [connection:studio]
 ; name = Studio image model
 ; base_url = https://YOUR_OTHER_HOST/v1

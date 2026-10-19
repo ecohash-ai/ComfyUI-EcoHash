@@ -1,10 +1,9 @@
-import hashlib
-import json
-
 try:
-    from ..ecohash import catalog, client, connections, conversions
+    from ..ecohash import catalog, client, conversions
 except ImportError:
-    from ecohash import catalog, client, connections, conversions
+    from ecohash import catalog, client, conversions
+
+from .dedicated import DedicatedNode, MODEL_INPUT, model_id
 
 SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512", "1536x864", "864x1536", "custom"]
 
@@ -73,13 +72,6 @@ def _edit_inputs(model_input):
     }
 
 
-def _deployed_model_id(model):
-    model = model.strip()
-    if not model:
-        raise client.EcoHashError("Enter the deployed model ID in the dedicated image node's model field.")
-    return model
-
-
 def _generate(model, prompt, size, steps, seed, endpoint=None):
     body = {"model": model, "prompt": prompt, "size": size, "response_format": "b64_json"}
     if steps > 0:
@@ -141,55 +133,29 @@ class EcoHashImageEdit:
         return _edit(image, model, prompt, _size(size, width, height))
 
 
-_DEPLOYED_MODEL_INPUT = ("STRING", {
-    "default": "",
-    "tooltip": "Exact model ID served by your dedicated endpoint; it need not appear in the public EcoHash catalog.",
-})
-
-
-class _DedicatedImageNode:
-    CATEGORY = "EcoHash/Dedicated"
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        # A changed destination/credential must invalidate cached images even if
-        # workflow widgets are unchanged. Keep credentials out of cache metadata.
-        endpoint = client.load_dedicated_endpoint(kwargs.get("connection", "dedicated"))
-        settings = json.dumps([endpoint.base_url, endpoint.api_key, endpoint.timeout])
-        return hashlib.sha256(settings.encode()).hexdigest()
-
-    @classmethod
-    def VALIDATE_INPUTS(cls, connection="dedicated"):
-        # Validate this dynamic combo ourselves to provide a useful mapping error
-        # when a workflow is opened on a different server.
-        if connection not in connections.connection_ids(dedicated_only=True):
-            return f"Connection '{connection}' is not configured. Open EcoHash connections and add or map that connection ID."
-        return True
-
-
-class EcoHashDedicatedImageGenerate(_DedicatedImageNode, EcoHashImageGenerate):
+class EcoHashDedicatedImageGenerate(DedicatedNode, EcoHashImageGenerate):
     DESCRIPTION = "Generate images using the dedicated inference endpoint configured outside the workflow."
 
     @classmethod
     def INPUT_TYPES(cls):
-        inputs = _generate_inputs(_DEPLOYED_MODEL_INPUT)
-        inputs["optional"]["connection"] = (connections.connection_ids(dedicated_only=True), {"default": "dedicated"})
+        inputs = _generate_inputs(MODEL_INPUT)
+        inputs["optional"]["connection"] = cls.connection_input()
         return inputs
 
     def generate(self, model, prompt, size, steps, seed, width=1024, height=1024, connection="dedicated"):
-        model = _deployed_model_id(model)
+        model = model_id(model)
         return _generate(model, prompt, _size(size, width, height), steps, seed, client.load_dedicated_endpoint(connection))
 
 
-class EcoHashDedicatedImageEdit(_DedicatedImageNode, EcoHashImageEdit):
+class EcoHashDedicatedImageEdit(DedicatedNode, EcoHashImageEdit):
     DESCRIPTION = "Edit images using the dedicated inference endpoint configured outside the workflow."
 
     @classmethod
     def INPUT_TYPES(cls):
-        inputs = _edit_inputs(_DEPLOYED_MODEL_INPUT)
-        inputs["optional"]["connection"] = (connections.connection_ids(dedicated_only=True), {"default": "dedicated"})
+        inputs = _edit_inputs(MODEL_INPUT)
+        inputs["optional"]["connection"] = cls.connection_input()
         return inputs
 
     def edit(self, image, model, prompt, size, width=1024, height=1024, connection="dedicated"):
-        model = _deployed_model_id(model)
+        model = model_id(model)
         return _edit(image, model, prompt, _size(size, width, height), client.load_dedicated_endpoint(connection))

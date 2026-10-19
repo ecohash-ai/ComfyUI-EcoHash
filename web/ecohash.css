@@ -25,3 +25,4 @@
 .ecohash-dialog { width: min(680px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--border-color, #555); border-radius: 12px; background: var(--comfy-menu-bg, #292929); color: var(--input-text, #ddd); }
 .ecohash-dialog::backdrop { background: #0008; }
 .ecohash-dialog .eh-close { float: right; }
+.ecohash-manager .eh-text-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20rem; overflow: auto; padding: .6rem; background: var(--comfy-input-bg, #222); border-radius: .4rem; }

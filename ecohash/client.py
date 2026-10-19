@@ -83,7 +83,7 @@ def _validate_http_url(url, *, base_url=False):
 def load_dedicated_endpoint(connection="dedicated") -> DedicatedEndpoint:
     from .connections import resolve
     if connection == "public":
-        raise EcoHashError("Select a dedicated connection for a Dedicated image node.")
+        raise EcoHashError("Select a dedicated connection for a Dedicated node.")
     return resolve(connection)
 
 
@@ -154,8 +154,8 @@ def request_json(method: str, path: str, *, json_body=None, data=None, files=Non
     resp = _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout, endpoint=endpoint)
     if resp.status_code == 202:
         raise EcoHashError(
-            "Inference API returned an asynchronous job (HTTP 202). These image nodes require a synchronous "
-            "image response; this endpoint needs a task-polling adapter."
+            "Inference API returned an asynchronous job (HTTP 202). These nodes require a synchronous "
+            "response; this endpoint needs a task-polling adapter."
         )
     try:
         result = resp.json()
@@ -178,8 +178,11 @@ def request_json(method: str, path: str, *, json_body=None, data=None, files=Non
     return result
 
 
-def request_bytes(method: str, path: str, *, json_body, timeout=180) -> bytes:
-    return _request(method, path, json_body=json_body, timeout=timeout).content
+def request_bytes(method: str, path: str, *, json_body, timeout=None, endpoint=None) -> bytes:
+    response = _request(method, path, json_body=json_body, timeout=timeout, endpoint=endpoint)
+    if response.status_code == 202:
+        raise EcoHashError("Speech API returned an asynchronous job (HTTP 202). A task-polling adapter is required.")
+    return response.content
 
 
 def download_image(url: str, *, timeout=180) -> bytes:

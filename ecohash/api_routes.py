@@ -91,3 +91,25 @@ def register_routes(routes):
             return {"image": base64.b64encode(conversions.image_tensor_to_png_bytes(image)).decode(), "width": image.shape[2], "height": image.shape[1]}
 
         return await _result(generate)
+
+    @routes.post("/ecohash/connections/{connection}/chat-test")
+    async def chat_test(request):
+        _guard(request)
+        data = await _body(request)
+        model = data.get("model")
+        if not isinstance(model, str) or not model.strip():
+            raise web.HTTPBadRequest(reason="Enter a deployed language model ID.")
+        if data.get("confirm_inference") is not True:
+            raise web.HTTPBadRequest(reason="Confirm the billable text inference test explicitly.")
+
+        def complete():
+            try:
+                from ..ecohash_nodes.llm_nodes import _run
+            except ImportError:
+                from ecohash_nodes.llm_nodes import _run
+            connection_id = request.match_info["connection"]
+            endpoint = None if connection_id == "public" else connections.resolve(connection_id)
+            (text,) = _run(model.strip(), "chat", "Say hello in one short sentence.", "", 0.7, 1024, endpoint)
+            return {"text": text}
+
+        return await _result(complete)

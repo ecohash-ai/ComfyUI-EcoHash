@@ -26,6 +26,7 @@ export function localizedText(value, locale = "en") {
     const special = {
         "Configured; connection has not been tested.": "配置已就绪，尚未测试连接。",
         "Connected and authenticated. No image was generated.": "连接和鉴权已通过，未执行图像生成。",
+        "Connected and authenticated. No inference request was sent.": "连接和鉴权已通过，未发送推理请求。",
     };
     if (chinese && special[value]) return special[value];
     const separator = value.indexOf(" / ");
@@ -35,12 +36,14 @@ export function localizedText(value, locale = "en") {
 }
 
 export function modelsForNode(models, type) {
+    type = type.replace(/^EcoHashDedicated/u, "EcoHash");
     const category = {
         EcoHashLLM: ["llm", "llm_vision"], EcoHashVLMDescribe: ["llm_vision"],
         EcoHashTTS: ["speech_tts"], EcoHashSTT: ["speech_stt"],
     }[type] ?? ["image"];
     return models.filter((model) => {
         if (model.category && !category.includes(model.category)) return false;
+        if (type.endsWith("VLMDescribe") && model.input_modalities?.length && !model.input_modalities.includes("image")) return false;
         if (type.endsWith("ImageEdit") && model.supports_image_edit === false) return false;
         return true;
     });
@@ -50,12 +53,17 @@ export function capabilityHint(model, type, locale = "en") {
     const t = (value) => localizedText(value, locale);
     if (!model) return t("Enter an exact model ID, or refresh models to discover available IDs. / 请填写准确的模型 ID，或刷新模型列表。");
     const hints = [model.name || model.id];
+    if (type.endsWith("VLMDescribe")) hints.push(t("Requires image-input support / 需要模型支持图片输入"));
+    if (type.endsWith("LLM") || type.endsWith("VLMDescribe")) {
+        if (model.input_modalities?.length) hints.push(`${t("Inputs / 输入")}: ${model.input_modalities.join(", ")}`);
+        if (model.output_modalities?.length) hints.push(`${t("Outputs / 输出")}: ${model.output_modalities.join(", ")}`);
+    }
     if (type.includes("Image")) {
         if (model.default_image_steps) hints.push(`${t("Default steps / 默认步数")}: ${model.default_image_steps} (steps = 0)`);
         if (typeof model.supports_image_edit === "boolean") hints.push(t(model.supports_image_edit ? "Supports image editing / 支持图像编辑" : "Generation only / 仅图像生成"));
         if (model.supported_sizes?.length) hints.push(`${t("Sizes / 尺寸")}: ${model.supported_sizes.join(", ")}`);
     }
-    if (type === "EcoHashTTS") hints.push(model.voices?.length ? `${t("Voices / 音色")}: ${model.voices.join(", ")}` : t("Voice IDs vary by model; enter a voice supported by this model. / 请填写该模型支持的音色 ID。"));
+    if (type.endsWith("TTS")) hints.push(model.voices?.length ? `${t("Voices / 音色")}: ${model.voices.join(", ")}` : t("Voice IDs vary by model; enter a voice supported by this model. / 请填写该模型支持的音色 ID。"));
     return hints.join(" · ");
 }
 

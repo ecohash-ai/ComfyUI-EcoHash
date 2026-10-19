@@ -20,7 +20,7 @@
 
 [EcoHash](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.intro) runs an NVIDIA RTX PRO 6000 GPU cloud and, on top of it,
 an OpenAI-compatible inference API for open models: image generation and editing, LLM chat,
-vision-language description, text-to-speech, and speech-to-text. This package adds eight ComfyUI
+vision-language description, text-to-speech, and speech-to-text. This package adds twelve ComfyUI
 nodes that call that API directly from your workflows — no local GPU or model download required
 for these nodes.
 
@@ -65,16 +65,19 @@ Open the **EcoHash** cloud tab in the sidebar, click **Connections** (Chinese: *
 node, or use **Extensions → EcoHash → EcoHash connections**.
 
 1. For public models (A), select `public`, enter your EcoHash key and **Save**.
-2. For dedicated images (B), configure `dedicated` or **Add connection**. Give it a stable
+2. For dedicated models (B), configure `dedicated` or **Add connection**. Give it a stable
    ID (for example `studio`), display name, API prefix URL, key and timeout.
 3. Click **Test connection**. This only queries `/models`; it does not generate an image.
    A successful model-list response verifies that request. A server without `/models` is
-   shown as reachable with authentication/image support still unverified.
+   shown as reachable with authentication/inference support still unverified.
 4. Use **Refresh models** to discover models. Dedicated nodes also accept manual model IDs.
 5. Select a connection and model in your workflow, enter the prompt and run.
 
 **Generate test image** is a separate action requiring a model ID and explicit confirmation
 before making a real, potentially billable generation request. Its preview appears in the manager.
+**Test text inference** separately verifies language-model completion with the selected connection;
+it also requires a model ID and explicit consent. Audio models can be tested in a workflow using
+Dedicated TTS/STT and Preview Audio or a downstream node.
 
 Keys are saved only on the ComfyUI server in git-ignored `connections.json` (owner-readable
 and writable on POSIX). The settings API never returns saved keys. Leave a key field blank to
@@ -82,7 +85,7 @@ keep its value. Per-field precedence: **nonempty environment variable → saved 
 config.ini → default**. Environment-managed fields are marked and locked. The public API URL
 and public timeout (180 seconds) are fixed; dedicated timeout defaults to 300 seconds.
 
-Each Dedicated image node has an optional `connection` selection; existing workflows default
+Each Dedicated node has an optional `connection` selection; existing workflows default
 to `dedicated`. Multiple independent deployments can run in one workflow. Shared workflows store
 only connection IDs and model IDs. Recipients create the same ID locally or select another
 connection. Missing IDs produce a mapping error and never fall back to another deployment.
@@ -132,6 +135,10 @@ Get or manage your key in the [API keys guide](https://docs.ecohash.com/getting-
 | **EcoHash VLM Describe** | `image` (`IMAGE`), `model` (catalog `llm_vision` models), `prompt` (string, defaults to a detailed-description instruction), `max_tokens` (int) | `STRING` | Describe an input image in detail with a vision-language model — handy for turning an existing image into a prompt for regeneration or variation. |
 | **EcoHash TTS** | `model` (catalog `speech_tts` models), `text` (string), `voice` (string, e.g. `af_bella`), `speed` (float, 0.5–2.0) | `AUDIO` | Synthesize speech from text. |
 | **EcoHash STT** | `audio` (`AUDIO`), `model` (catalog `speech_stt` models), `language` (string, ISO-639-1 code, empty = auto-detect) | `STRING` | Transcribe speech audio to text. |
+| **EcoHash Dedicated LLM** | deployed `model`, `mode`, `text`, `system_prompt`, `temperature`, `max_tokens`, optional `connection` | `STRING` | Chat, enhance prompts or translate with a dedicated language model. |
+| **EcoHash Dedicated VLM Describe** | `image`, deployed `model`, `prompt`, `max_tokens`, optional `connection` | `STRING` | Describe an image with a dedicated vision-language model. |
+| **EcoHash Dedicated TTS** | deployed `model`, `text`, model-specific `voice`, `speed`, optional `connection` | `AUDIO` | Generate speech with a dedicated model. |
+| **EcoHash Dedicated STT** | `audio`, deployed `model`, `language`, optional `connection` | `STRING` | Transcribe audio with a dedicated model. |
 
 Public model menus initially use the cache or packaged snapshot without blocking node loading
 on the network. The frontend refreshes separately; **Refresh models** updates menus and reports
@@ -150,7 +157,8 @@ Node status shows waiting, completed, cached, interrupted or failed execution.
 
 ## Dedicated inference (B)
 
-The two **EcoHash/Dedicated** nodes call a separately deployed image model. The original six
+The six **EcoHash/Dedicated** nodes cover all supported model types: image generation/editing,
+LLM, vision-language description, TTS and STT. They call separately deployed models. The original six
 nodes continue to use the public EcoHash API (A), so both can be used in the same workflow.
 Dedicated nodes accept a free-text model ID and do not consult the public model catalog.
 
@@ -193,7 +201,14 @@ an `IMAGE` to **EcoHash Dedicated Image Edit** and enter a model ID that support
 An example workflow is in [`example_workflows/dedicated_text_to_image.json`](example_workflows/dedicated_text_to_image.json).
 Dedicated nodes invalidate their cached result when their endpoint, key or timeout changes.
 
-The current protocol is a **synchronous, OpenAI-compatible image API**:
+For language models, use **EcoHash Dedicated LLM** with the same four modes as the public LLM.
+Its STRING output can feed either a public or dedicated image node. Use **EcoHash Dedicated VLM
+Describe** for a model that supports image inputs. For audio, use **EcoHash Dedicated TTS/STT**;
+enter the model's actual voice ID for TTS. Each node independently selects its connection, so
+language, image and audio deployments can use different URLs and keys in one workflow.
+
+The current protocol is a **synchronous, OpenAI-compatible API**. Deployments implement the
+routes needed by their model type; they do not need to implement every route:
 
 - Generation: `POST {base_url}/images/generations`, JSON with `model`, `prompt`, `size`,
   `response_format=b64_json`, and optional `steps` / `seed`.
@@ -203,6 +218,14 @@ The current protocol is a **synchronous, OpenAI-compatible image API**:
 - Result: `{"data": [{"b64_json": "..."}]}` or `{"data": [{"url": "https://..."}]}`.
   Result URLs must be downloadable without the inference key; that key is never forwarded
   when fetching an image URL. Each call produces one `IMAGE` from the first result.
+- Language/vision: `POST {base_url}/chat/completions`, with `model`, `messages`,
+  `max_tokens` and (for text LLM) `temperature`. Vision uses `text` and `image_url` parts
+  with an inline PNG data URL. Return string text at `choices[0].message.content`.
+  Requests are non-streaming; a text-only model does not provide vision support.
+- TTS: `POST {base_url}/audio/speech`, JSON with `model`, `input`, `voice`, `speed`,
+  `response_format=wav`; return 16-bit PCM WAV bytes.
+- STT: `POST {base_url}/audio/transcriptions`, multipart fields `model`, optional
+  `language`, and WAV `file`; return `{"text": "..."}` JSON.
 
 An HTTP 202 job response requires a task-polling adapter and is reported as unsupported.
 Other response schemas, authentication schemes, and deployment-routing headers also require
@@ -210,11 +233,11 @@ an adapter. API requests do not follow redirects; configure the final API base U
 LoRA, ControlNet and other deployment-specific parameters are not exposed by these nodes yet.
 
 Before testing a real service, verify it implements this protocol. The automated tests cover
-configuration, credential isolation and real loopback HTTP generation/editing against a test
+configuration, credential isolation and real loopback HTTP image, language and audio calls against a test
 service; they do not establish compatibility with any particular dedicated deployment.
 See [`tests/DEDICATED_RESULTS.md`](tests/DEDICATED_RESULTS.md) for the verification record.
 
-After configuring your real endpoint, run the node-level smoke test in a Python environment
+For images, after configuring your real endpoint, run the node-level smoke test in a Python environment
 with the ComfyUI dependencies available (this makes real, billable API calls):
 
 ```bash
@@ -264,7 +287,7 @@ verification and the remaining checks for a real dedicated deployment.
 
 EcoHash 提供 NVIDIA RTX PRO 6000 GPU 云，以及构建其上的 OpenAI 兼容推理 API。ComfyUI-EcoHash 为
 ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话、图像描述（VLM）、文本转语音（TTS）
-和语音转文本（STT），以及 2 个专属推理图像节点。这些节点无需本地 GPU 或下载模型。
+和语音转文本（STT），以及覆盖相同类型的 6 个专属推理节点。这些节点无需本地 GPU 或下载模型。
 
 **GPU 云**：同一个账号也可按小时租用 [RTX PRO 6000 Blackwell 实例](https://ecohash.com/gpu/rtx-pro-6000?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-zh)（96 GB 显存），
 用于运行带本地模型的完整 ComfyUI 环境，详见 [GPU 云文档](https://docs.ecohash.com/gpu-compute/overview?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-docs-zh)。
@@ -278,6 +301,7 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 **界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **Connections / 连接设置**。
 公共模型选择 `public` 并保存密钥；专属模型配置 `dedicated` 或添加具名连接。先保存，再测试连接、
 刷新模型。连接检测不生成图片；测试出图需要单独勾选确认，将发送实际生成请求。
+语言模型可用独立的“测试文本”入口，也需单独确认；TTS/STT 在工作流中连接音频节点验证。
 密钥只保存在服务端 `connections.json`，不会写进工作流，读取配置接口也不会返回密钥。
 环境变量和 `config.ini` 仍可使用，优先级为：环境变量 → 界面设置 → `config.ini`。
 
@@ -287,8 +311,11 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 `/v1`。添加 **EcoHash Dedicated Image Generate / Edit** 节点，直接填写部署模型 ID 即可调用，
 无需模型出现在公共目录中。专属节点的 `connection` 可分别选择不同部署，也可通过
 `[connection:连接ID]` 配置多个端点。分享工作流时接收方配置同名连接，或在节点中重新选择。
-A、B 使用独立密钥，可以在同一工作流混用。当前支持同步图像生成/编辑
-接口和 base64 / 图片 URL 返回；异步任务或其他协议需要另行适配，详见上方 Dedicated inference。
+专属语言模型使用 **EcoHash Dedicated LLM**，支持对话、提示词增强、翻译和自定义模式；
+图片描述使用 **EcoHash Dedicated VLM Describe**，要求模型支持图片输入。语音模型使用
+**EcoHash Dedicated TTS / STT**；TTS 的音色需按模型选择或填写。
+每个节点都可选择独立专属实例，A、B 使用独立密钥并可混用。当前支持同步的 OpenAI 兼容
+图像、聊天和语音接口；异步任务或其他协议需要另行适配，详见上方 Dedicated inference。
 
 **参数和帮助**：`size=custom` 时显示宽高；LLM 的 `custom` 模式才显示系统提示词。
 音色按模型元数据显示可选项，未提供列表时支持手填。示例可从工作流模板浏览器加载；节点的信息面板

@@ -11,10 +11,13 @@ import threading
 import pytest
 from PIL import Image
 
-from ecohash import client
+from ecohash import client, connections
 from ecohash_nodes.image_nodes import (
     EcoHashDedicatedImageEdit, EcoHashDedicatedImageGenerate, EcoHashImageGenerate,
 )
+from ecohash_nodes.llm_nodes import EcoHashDedicatedLLM, EcoHashDedicatedVLMDescribe, EcoHashLLM
+from ecohash_nodes.audio_nodes import EcoHashDedicatedTTS, EcoHashDedicatedSTT
+from tests.test_conversions import _wav_bytes
 
 
 def _png(color):
@@ -52,6 +55,23 @@ def inference_server():
                 return self.respond(307, {}, Location="/unexpected-forward")
             if self.path.startswith("/async/"):
                 return self.respond(202, {"id": "queued-job"})
+            if self.path.endswith("/chat/completions"):
+                record["json"] = json.loads(body)
+                content = record["json"]["messages"][-1]["content"]
+                text = "a red image" if isinstance(content, list) else "a bright red apple on a white background"
+                return self.respond(200, {"choices": [{"message": {"content": text}}]})
+            if self.path.endswith("/audio/speech"):
+                record["json"] = json.loads(body)
+                return self.respond(200, _wav_bytes(), "audio/wav")
+            if self.path.endswith("/audio/transcriptions"):
+                content_type = self.headers["Content-Type"].encode()
+                message = BytesParser(policy=policy.default).parsebytes(
+                    b"Content-Type: " + content_type + b"\r\nMIME-Version: 1.0\r\n\r\n" + body
+                )
+                parts = {part.get_param("name", header="content-disposition"): part for part in message.iter_parts()}
+                record["fields"] = {name: part.get_payload(decode=True).decode() for name, part in parts.items() if name != "file"}
+                record["audio"] = parts["file"].get_payload(decode=True)
+                return self.respond(200, {"text": "hello from the dedicated speech model"})
             if self.path.endswith("/images/generations"):
                 record["json"] = json.loads(body)
                 return self.respond(200, {"data": [{"b64_json": base64.b64encode(generated).decode()}]})
@@ -144,3 +164,35 @@ def test_dedicated_smoke_command_saves_both_results(monkeypatch, inference_serve
         assert image.getpixel((0, 0)) == (0, 255, 0)
     assert "PASS generation: 48x32" in capsys.readouterr().out
     assert len(records) == 3
+
+
+def test_all_dedicated_model_types_route_independently_and_chain_outputs(monkeypatch, inference_server):
+    base_url, records = inference_server
+    monkeypatch.setattr(client, "BASE_URL", base_url + "/public/v1")
+    monkeypatch.setenv("ECOHASH_API_KEY", "public-only-key")
+    for name in ("language", "vision", "image", "speech", "transcription"):
+        connections.save_connection(name, {"base_url": f"{base_url}/{name}/v1", "api_key": f"{name}-only-key", "timeout": 5})
+    EcoHashLLM().run("public-model", "chat", "hello", "", 0.7, 64)
+    (prompt,) = EcoHashDedicatedLLM().run(" private-language ", "custom", "an apple", "Enhance the prompt.", 0.2, 123, connection="language")
+    (image,) = EcoHashDedicatedImageGenerate().generate("private-image", prompt, "512x512", 0, 42, connection="image")
+    (description,) = EcoHashDedicatedVLMDescribe().describe(image, "private-vision", "Describe.", 234, connection="vision")
+    (audio,) = EcoHashDedicatedTTS().speak("private-tts", description, "speaker-a", 1.2, connection="speech")
+    (text,) = EcoHashDedicatedSTT().transcribe(audio, "private-stt", " zh ", connection="transcription")
+    assert text == "hello from the dedicated speech model"
+    assert audio["sample_rate"] == 16000
+    assert [r["path"] for r in records] == [
+        "/public/v1/chat/completions", "/language/v1/chat/completions", "/image/v1/images/generations",
+        "/vision/v1/chat/completions", "/speech/v1/audio/speech", "/transcription/v1/audio/transcriptions",
+    ]
+    assert [r["auth"] for r in records] == [f"Bearer {key}-only-key" for key in ("public", "language", "image", "vision", "speech", "transcription")]
+    assert records[1]["json"] == {"model": "private-language", "messages": [
+        {"role": "system", "content": "Enhance the prompt."}, {"role": "user", "content": "an apple"}],
+        "temperature": 0.2, "max_tokens": 123}
+    assert records[2]["json"]["prompt"] == prompt
+    vision = records[3]["json"]
+    assert vision["model"] == "private-vision" and vision["max_tokens"] == 234
+    url = vision["messages"][0]["content"][1]["image_url"]["url"]
+    assert Image.open(io.BytesIO(base64.b64decode(url.split(",", 1)[1]))).getpixel((0, 0)) == (255, 0, 0)
+    assert records[4]["json"] == {"model": "private-tts", "input": description, "voice": "speaker-a", "speed": 1.2, "response_format": "wav"}
+    assert records[5]["fields"] == {"model": "private-stt", "language": "zh"}
+    assert records[5]["audio"].startswith(b"RIFF")

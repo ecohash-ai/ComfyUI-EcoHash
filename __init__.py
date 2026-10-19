@@ -10,25 +10,29 @@
 # nodes.py), and a same-named subpackage here would silently resolve to that
 # module instead of ours once ComfyUI has already imported it.
 try:
-    from .ecohash_nodes.audio_nodes import EcoHashSTT, EcoHashTTS
+    from .ecohash_nodes.audio_nodes import EcoHashDedicatedSTT, EcoHashDedicatedTTS, EcoHashSTT, EcoHashTTS
     from .ecohash_nodes.image_nodes import (
         EcoHashDedicatedImageEdit, EcoHashDedicatedImageGenerate,
         EcoHashImageEdit, EcoHashImageGenerate,
     )
-    from .ecohash_nodes.llm_nodes import EcoHashLLM, EcoHashVLMDescribe
+    from .ecohash_nodes.llm_nodes import EcoHashDedicatedLLM, EcoHashDedicatedVLMDescribe, EcoHashLLM, EcoHashVLMDescribe
 except ImportError:  # direct/pytest context where this file is not loaded as a package
-    from ecohash_nodes.audio_nodes import EcoHashSTT, EcoHashTTS
+    from ecohash_nodes.audio_nodes import EcoHashDedicatedSTT, EcoHashDedicatedTTS, EcoHashSTT, EcoHashTTS
     from ecohash_nodes.image_nodes import (
         EcoHashDedicatedImageEdit, EcoHashDedicatedImageGenerate,
         EcoHashImageEdit, EcoHashImageGenerate,
     )
-    from ecohash_nodes.llm_nodes import EcoHashLLM, EcoHashVLMDescribe
+    from ecohash_nodes.llm_nodes import EcoHashDedicatedLLM, EcoHashDedicatedVLMDescribe, EcoHashLLM, EcoHashVLMDescribe
 
 NODE_CLASS_MAPPINGS = {
     "EcoHashImageGenerate": EcoHashImageGenerate,
     "EcoHashImageEdit": EcoHashImageEdit,
     "EcoHashDedicatedImageGenerate": EcoHashDedicatedImageGenerate,
     "EcoHashDedicatedImageEdit": EcoHashDedicatedImageEdit,
+    "EcoHashDedicatedLLM": EcoHashDedicatedLLM,
+    "EcoHashDedicatedVLMDescribe": EcoHashDedicatedVLMDescribe,
+    "EcoHashDedicatedTTS": EcoHashDedicatedTTS,
+    "EcoHashDedicatedSTT": EcoHashDedicatedSTT,
     "EcoHashLLM": EcoHashLLM,
     "EcoHashVLMDescribe": EcoHashVLMDescribe,
     "EcoHashTTS": EcoHashTTS,
@@ -40,6 +44,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EcoHashImageEdit": "EcoHash Image Edit",
     "EcoHashDedicatedImageGenerate": "EcoHash Dedicated Image Generate",
     "EcoHashDedicatedImageEdit": "EcoHash Dedicated Image Edit",
+    "EcoHashDedicatedLLM": "EcoHash Dedicated LLM",
+    "EcoHashDedicatedVLMDescribe": "EcoHash Dedicated VLM Describe",
+    "EcoHashDedicatedTTS": "EcoHash Dedicated TTS",
+    "EcoHashDedicatedSTT": "EcoHash Dedicated STT",
     "EcoHashLLM": "EcoHash LLM",
     "EcoHashVLMDescribe": "EcoHash VLM Describe",
     "EcoHashTTS": "EcoHash TTS",

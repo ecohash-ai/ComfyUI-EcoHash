@@ -6,6 +6,8 @@ def test_node_mappings_complete():
         "EcoHashImageGenerate", "EcoHashImageEdit", "EcoHashLLM",
         "EcoHashVLMDescribe", "EcoHashTTS", "EcoHashSTT",
         "EcoHashDedicatedImageGenerate", "EcoHashDedicatedImageEdit",
+        "EcoHashDedicatedLLM", "EcoHashDedicatedVLMDescribe",
+        "EcoHashDedicatedTTS", "EcoHashDedicatedSTT",
     }
     assert all(v for v in root.NODE_DISPLAY_NAME_MAPPINGS.values())
 
@@ -25,7 +27,7 @@ def test_comfyui_package_loading(monkeypatch):
     monkeypatch.setitem(sys.modules, name, module)
     try:
         spec.loader.exec_module(module)
-        for node_id in ("EcoHashDedicatedImageGenerate", "EcoHashDedicatedImageEdit"):
+        for node_id in (name for name in module.NODE_CLASS_MAPPINGS if name.startswith("EcoHashDedicated")):
             node = module.NODE_CLASS_MAPPINGS[node_id]
             assert node.__module__.startswith(name + ".")
             assert node.INPUT_TYPES()["required"]["model"][0] == "STRING"

@@ -1,0 +1,215 @@
+{
+ "id": "fc463b6c-f126-4d3e-874f-036fb08bde3c",
+ "revision": 0,
+ "last_node_id": 4,
+ "last_link_id": 3,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "LoadImage",
+   "pos": [
+    60,
+    100
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ]
+  },
+  {
+   "id": 2,
+   "type": "EcoHashDedicatedVLMDescribe",
+   "pos": [
+    440,
+    100
+   ],
+   "size": [
+    400,
+    280
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EcoHashDedicatedVLMDescribe"
+   },
+   "widgets_values": [
+    "YOUR_VISION_MODEL_ID",
+    "Describe this image in detail for use as an image-generation prompt.",
+    512,
+    "dedicated"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "EcoHashDedicatedImageGenerate",
+   "pos": [
+    900,
+    100
+   ],
+   "size": [
+    400,
+    260
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "link": 2,
+     "widget": {
+      "name": "prompt"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      3
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EcoHashDedicatedImageGenerate"
+   },
+   "widgets_values": [
+    "YOUR_IMAGE_MODEL_ID",
+    "",
+    "1024x1024",
+    0,
+    -1,
+    "fixed",
+    1024,
+    1024,
+    "dedicated"
+   ],
+   "widgets_values_named": {
+    "model": "YOUR_IMAGE_MODEL_ID",
+    "prompt": "",
+    "size": "1024x1024",
+    "steps": 0,
+    "seed": -1,
+    "width": 1024,
+    "height": 1024,
+    "control_after_generate": "fixed",
+    "connection": "dedicated"
+   }
+  },
+  {
+   "id": 4,
+   "type": "PreviewImage",
+   "pos": [
+    1360,
+    100
+   ],
+   "size": [
+    280,
+    260
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": []
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "IMAGE"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "STRING"
+  ],
+  [
+   3,
+   3,
+   0,
+   4,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 1,
+   "offset": [
+    0,
+    0
+   ]
+  }
+ },
+ "version": 0.4
+}
