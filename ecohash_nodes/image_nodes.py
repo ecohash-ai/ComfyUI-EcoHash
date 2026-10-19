@@ -2,11 +2,25 @@ import hashlib
 import json
 
 try:
-    from ..ecohash import catalog, client, conversions
+    from ..ecohash import catalog, client, connections, conversions
 except ImportError:
-    from ecohash import catalog, client, conversions
+    from ecohash import catalog, client, connections, conversions
 
-SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512"]
+SIZES = ["1024x1024", "1024x768", "768x1024", "768x768", "512x512", "1536x864", "864x1536", "custom"]
+
+
+def _dimension_inputs():
+    return {name: ("INT", {"default": 1024, "min": 64, "max": 8192, "step": 16,
+                           "tooltip": "Used only when size = custom. Check the selected model's supported dimensions."})
+            for name in ("width", "height")}
+
+
+def _size(size, width, height):
+    if size != "custom":
+        return size
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 64 or value > 8192 or value % 16 for value in (width, height)):
+        raise client.EcoHashError("Custom width and height must be multiples of 16 between 64 and 8192.")
+    return f"{width}x{height}"
 
 
 def _image_result(out, endpoint=None):
@@ -39,7 +53,8 @@ def _generate_inputs(model_input):
                               "tooltip": "0 = model default"}),
             "seed": ("INT", {"default": -1, "min": -1, "max": 2**31 - 1,
                              "tooltip": "-1 = random"}),
-        }
+        },
+        "optional": _dimension_inputs(),
     }
 
 
@@ -53,7 +68,8 @@ def _edit_inputs(model_input):
                 "default": "auto",
                 "tooltip": "auto = send the source image dimensions (the service may round them)",
             }),
-        }
+        },
+        "optional": _dimension_inputs(),
     }
 
 
@@ -97,19 +113,21 @@ class EcoHashImageGenerate:
     CATEGORY = "EcoHash"
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE",)
+    DESCRIPTION = "Generate an image through the public EcoHash API. Configure your key with the Connections button or EcoHash sidebar."
 
     @classmethod
     def INPUT_TYPES(cls):
         return _generate_inputs((catalog.model_ids("image"),))
 
-    def generate(self, model, prompt, size, steps, seed):
-        return _generate(model, prompt, size, steps, seed)
+    def generate(self, model, prompt, size, steps, seed, width=1024, height=1024):
+        return _generate(model, prompt, _size(size, width, height), steps, seed)
 
 
 class EcoHashImageEdit:
     CATEGORY = "EcoHash"
     FUNCTION = "edit"
     RETURN_TYPES = ("IMAGE",)
+    DESCRIPTION = "Edit one image through the public EcoHash API. Choose a model that supports image editing."
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -119,8 +137,8 @@ class EcoHashImageEdit:
         ]
         return _edit_inputs((edit_models or ["(catalog unavailable)"],))
 
-    def edit(self, image, model, prompt, size):
-        return _edit(image, model, prompt, size)
+    def edit(self, image, model, prompt, size, width=1024, height=1024):
+        return _edit(image, model, prompt, _size(size, width, height))
 
 
 _DEPLOYED_MODEL_INPUT = ("STRING", {
@@ -136,9 +154,17 @@ class _DedicatedImageNode:
     def IS_CHANGED(cls, **kwargs):
         # A changed destination/credential must invalidate cached images even if
         # workflow widgets are unchanged. Keep credentials out of cache metadata.
-        endpoint = client.load_dedicated_endpoint()
+        endpoint = client.load_dedicated_endpoint(kwargs.get("connection", "dedicated"))
         settings = json.dumps([endpoint.base_url, endpoint.api_key, endpoint.timeout])
         return hashlib.sha256(settings.encode()).hexdigest()
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, connection="dedicated"):
+        # Validate this dynamic combo ourselves to provide a useful mapping error
+        # when a workflow is opened on a different server.
+        if connection not in connections.connection_ids(dedicated_only=True):
+            return f"Connection '{connection}' is not configured. Open EcoHash connections and add or map that connection ID."
+        return True
 
 
 class EcoHashDedicatedImageGenerate(_DedicatedImageNode, EcoHashImageGenerate):
@@ -146,11 +172,13 @@ class EcoHashDedicatedImageGenerate(_DedicatedImageNode, EcoHashImageGenerate):
 
     @classmethod
     def INPUT_TYPES(cls):
-        return _generate_inputs(_DEPLOYED_MODEL_INPUT)
+        inputs = _generate_inputs(_DEPLOYED_MODEL_INPUT)
+        inputs["optional"]["connection"] = (connections.connection_ids(dedicated_only=True), {"default": "dedicated"})
+        return inputs
 
-    def generate(self, model, prompt, size, steps, seed):
+    def generate(self, model, prompt, size, steps, seed, width=1024, height=1024, connection="dedicated"):
         model = _deployed_model_id(model)
-        return _generate(model, prompt, size, steps, seed, client.load_dedicated_endpoint())
+        return _generate(model, prompt, _size(size, width, height), steps, seed, client.load_dedicated_endpoint(connection))
 
 
 class EcoHashDedicatedImageEdit(_DedicatedImageNode, EcoHashImageEdit):
@@ -158,8 +186,10 @@ class EcoHashDedicatedImageEdit(_DedicatedImageNode, EcoHashImageEdit):
 
     @classmethod
     def INPUT_TYPES(cls):
-        return _edit_inputs(_DEPLOYED_MODEL_INPUT)
+        inputs = _edit_inputs(_DEPLOYED_MODEL_INPUT)
+        inputs["optional"]["connection"] = (connections.connection_ids(dedicated_only=True), {"default": "dedicated"})
+        return inputs
 
-    def edit(self, image, model, prompt, size):
+    def edit(self, image, model, prompt, size, width=1024, height=1024, connection="dedicated"):
         model = _deployed_model_id(model)
-        return _edit(image, model, prompt, size, client.load_dedicated_endpoint())
+        return _edit(image, model, prompt, _size(size, width, height), client.load_dedicated_endpoint(connection))

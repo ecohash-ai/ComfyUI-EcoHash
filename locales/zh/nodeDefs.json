@@ -1,0 +1,177 @@
+{
+  "EcoHashImageGenerate": {
+    "display_name": "EcoHash 图像生成",
+    "inputs": {
+      "model": {
+        "name": "模型 ID"
+      },
+      "prompt": {
+        "name": "提示词"
+      },
+      "size": {
+        "name": "尺寸"
+      },
+      "steps": {
+        "name": "步数"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "width": {
+        "name": "宽度（自定义尺寸）"
+      },
+      "height": {
+        "name": "高度（自定义尺寸）"
+      }
+    }
+  },
+  "EcoHashImageEdit": {
+    "display_name": "EcoHash 图像编辑",
+    "inputs": {
+      "image": {
+        "name": "输入图片"
+      },
+      "model": {
+        "name": "模型 ID"
+      },
+      "prompt": {
+        "name": "提示词"
+      },
+      "size": {
+        "name": "尺寸"
+      },
+      "width": {
+        "name": "宽度（自定义尺寸）"
+      },
+      "height": {
+        "name": "高度（自定义尺寸）"
+      }
+    }
+  },
+  "EcoHashDedicatedImageGenerate": {
+    "display_name": "EcoHash 专属图像生成",
+    "inputs": {
+      "model": {
+        "name": "模型 ID"
+      },
+      "prompt": {
+        "name": "提示词"
+      },
+      "size": {
+        "name": "尺寸"
+      },
+      "steps": {
+        "name": "步数"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "width": {
+        "name": "宽度（自定义尺寸）"
+      },
+      "height": {
+        "name": "高度（自定义尺寸）"
+      },
+      "connection": {
+        "name": "连接"
+      }
+    }
+  },
+  "EcoHashDedicatedImageEdit": {
+    "display_name": "EcoHash 专属图像编辑",
+    "inputs": {
+      "image": {
+        "name": "输入图片"
+      },
+      "model": {
+        "name": "模型 ID"
+      },
+      "prompt": {
+        "name": "提示词"
+      },
+      "size": {
+        "name": "尺寸"
+      },
+      "width": {
+        "name": "宽度（自定义尺寸）"
+      },
+      "height": {
+        "name": "高度（自定义尺寸）"
+      },
+      "connection": {
+        "name": "连接"
+      }
+    }
+  },
+  "EcoHashLLM": {
+    "display_name": "EcoHash 语言模型",
+    "inputs": {
+      "model": {
+        "name": "模型 ID"
+      },
+      "mode": {
+        "name": "模式"
+      },
+      "text": {
+        "name": "文本"
+      },
+      "system_prompt": {
+        "name": "系统提示词（自定义模式）"
+      },
+      "temperature": {
+        "name": "温度"
+      },
+      "max_tokens": {
+        "name": "最大输出 Token"
+      }
+    }
+  },
+  "EcoHashVLMDescribe": {
+    "display_name": "EcoHash 图像描述",
+    "inputs": {
+      "image": {
+        "name": "输入图片"
+      },
+      "model": {
+        "name": "模型 ID"
+      },
+      "prompt": {
+        "name": "提示词"
+      },
+      "max_tokens": {
+        "name": "最大输出 Token"
+      }
+    }
+  },
+  "EcoHashTTS": {
+    "display_name": "EcoHash 文本转语音",
+    "inputs": {
+      "model": {
+        "name": "模型 ID"
+      },
+      "text": {
+        "name": "文本"
+      },
+      "voice": {
+        "name": "音色 ID"
+      },
+      "speed": {
+        "name": "语速"
+      }
+    }
+  },
+  "EcoHashSTT": {
+    "display_name": "EcoHash 语音转文本",
+    "inputs": {
+      "audio": {
+        "name": "输入音频"
+      },
+      "model": {
+        "name": "模型 ID"
+      },
+      "language": {
+        "name": "语言（留空自动识别）"
+      }
+    }
+  }
+}

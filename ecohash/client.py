@@ -2,7 +2,6 @@
 
 import configparser
 from dataclasses import dataclass, field
-import math
 import os
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -13,7 +12,8 @@ BASE_URL = "https://api.ecohash.com/v1"
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.ini"
 
 _KEY_HELP = (
-    "EcoHash API key not found. Set the ECOHASH_API_KEY environment variable, or copy "
+    "EcoHash API key not found. Open the EcoHash connection manager from the sidebar or a node's Connections button. "
+    "Alternatively, set the ECOHASH_API_KEY environment variable, or copy "
     "config.ini.example to config.ini inside the ComfyUI-EcoHash folder and paste your key. "
     "Get a key at https://docs.ecohash.com/getting-started/api-keys"
 )
@@ -40,6 +40,7 @@ class DedicatedEndpoint:
     base_url: str
     api_key: str = field(repr=False)
     timeout: float = 300
+    connection_id: str = "dedicated"
 
 
 def _read_config():
@@ -79,50 +80,24 @@ def _validate_http_url(url, *, base_url=False):
     return url
 
 
-def load_dedicated_endpoint() -> DedicatedEndpoint:
-    """Load a separate destination and credential; never fall back to the public key."""
-    # Read lazily so changing settings does not require reloading the plugin.
-    def setting(name, default=""):
-        value = os.environ.get(f"ECOHASH_DEDICATED_{name.upper()}", "").strip()
-        if value:
-            return value
-        return config.get("dedicated", name, fallback=default).strip()
-
-    config = _read_config()
-    base_url = setting("base_url").rstrip("/")
-    if not base_url:
-        raise EcoHashError(
-            "Dedicated inference URL not configured. Set ECOHASH_DEDICATED_BASE_URL or "
-            "[dedicated] base_url in config.ini, including the API prefix (for example /v1)."
-        )
-    _validate_http_url(base_url, base_url=True)
-    key = setting("api_key")
-    if not key or key == "YOUR_DEDICATED_KEY_HERE":
-        raise EcoHashAuthError(
-            "Dedicated inference API key not found. Set ECOHASH_DEDICATED_API_KEY or "
-            "[dedicated] api_key in config.ini. The public ECOHASH_API_KEY is not used here."
-        )
-    try:
-        timeout = float(setting("timeout", "300"))
-        if not math.isfinite(timeout) or timeout <= 0:
-            raise ValueError
-    except ValueError:
-        raise EcoHashError("Dedicated inference timeout must be a positive number of seconds.") from None
-    return DedicatedEndpoint(base_url, key, timeout)
+def load_dedicated_endpoint(connection="dedicated") -> DedicatedEndpoint:
+    from .connections import resolve
+    if connection == "public":
+        raise EcoHashError("Select a dedicated connection for a Dedicated image node.")
+    return resolve(connection)
 
 
 def load_api_key() -> str:
     key = os.environ.get("ECOHASH_API_KEY", "").strip()
     if key:
         return key
-    if CONFIG_PATH.exists():
-        try:
-            parser = _read_config()
-        except EcoHashError as exc:
-            raise EcoHashAuthError(f"{exc}\n\n{_KEY_HELP}") from None
-        key = parser.get("ecohash", "api_key", fallback="").strip()
-        if key and key != "eco_YOUR_KEY_HERE":
-            return key
+    from .connections import values
+    try:
+        key = values("public")["api_key"]
+    except EcoHashError as exc:
+        raise EcoHashAuthError(f"{exc}\n\n{_KEY_HELP}") from None
+    if key and key != "eco_YOUR_KEY_HERE":
+        return key
     raise EcoHashAuthError(_KEY_HELP)
 
 
@@ -130,8 +105,9 @@ def _raise_for_status(resp, endpoint=None) -> None:
     if endpoint is not None:
         if resp.status_code < 300:
             return
+        key_hint = "Check ECOHASH_DEDICATED_API_KEY or [dedicated] api_key." if endpoint.connection_id == "dedicated" else "Check the selected connection's key in EcoHash connections."
         messages = {
-            401: "Dedicated inference authentication failed (401). Check ECOHASH_DEDICATED_API_KEY or [dedicated] api_key.",
+            401: f"Dedicated inference authentication failed (401). {key_hint}",
             403: "Dedicated inference access denied (403). Check the dedicated key's access to this deployment.",
             404: "Dedicated inference endpoint or model not found (404). Check base_url (including its API prefix) and the deployed model ID.",
             429: "Dedicated inference rate limited (429). Wait a moment and retry.",

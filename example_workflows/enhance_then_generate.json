@@ -81,8 +81,21 @@
     "a cozy cabin in the woods in winter",
     "1024x1024",
     0,
-    -1
-   ]
+    -1,
+    "fixed",
+    1024,
+    1024
+   ],
+   "widgets_values_named": {
+    "model": "z-image-turbo",
+    "prompt": "a cozy cabin in the woods in winter",
+    "size": "1024x1024",
+    "steps": 0,
+    "seed": -1,
+    "width": 1024,
+    "height": 1024,
+    "control_after_generate": "fixed"
+   }
   },
   {
    "id": 3,

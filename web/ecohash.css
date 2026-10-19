@@ -1,0 +1,27 @@
+.ecohash-manager { color: var(--input-text, #ddd); font: 13px/1.5 system-ui, sans-serif; padding: 18px; box-sizing: border-box; }
+.ecohash-manager [hidden] { display: none !important; }
+.ecohash-manager h2 { margin: 0 0 4px; font-size: 19px; }
+.ecohash-manager p { margin: 6px 0 14px; }
+.ecohash-manager .eh-muted { color: var(--descrip-text, #aaa); font-size: 12px; }
+.ecohash-manager .eh-row { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+.ecohash-manager label { display: flex; flex-direction: column; gap: 5px; margin: 12px 0; font-weight: 500; }
+.ecohash-manager label:has(input[type=checkbox]) { flex-direction: row; align-items: start; font-weight: 400; }
+.ecohash-manager input, .ecohash-manager select, .ecohash-manager button { box-sizing: border-box; font: inherit; color: inherit; border: 1px solid var(--border-color, #555); border-radius: 6px; background: var(--comfy-input-bg, #222); padding: 8px 10px; }
+.ecohash-manager input:not([type=checkbox]), .ecohash-manager select { width: 100%; min-width: 0; }
+.ecohash-manager input[type=checkbox] { margin: 4px 4px 0 0; }
+.ecohash-manager button { cursor: pointer; }
+.ecohash-manager button:hover:not(:disabled) { border-color: #a78bfa; }
+.ecohash-manager button:disabled, .ecohash-manager input:disabled { opacity: .55; cursor: default; }
+.ecohash-manager .eh-primary { background: #6d28d9; border-color: #8b5cf6; color: white; }
+.ecohash-manager :focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+.ecohash-manager .eh-status { border-left: 3px solid #a78bfa; background: var(--comfy-input-bg, #222); padding: 10px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 14px 0; }
+.ecohash-manager .eh-status[data-error=true] { border-color: #f87171; }
+.ecohash-manager .eh-models { max-height: 180px; overflow: auto; padding-left: 22px; }
+.ecohash-manager .eh-models li { overflow-wrap: anywhere; }
+.ecohash-manager details { border-top: 1px solid var(--border-color, #555); padding-top: 12px; margin-top: 18px; }
+.ecohash-manager summary { cursor: pointer; font-weight: 600; }
+.ecohash-manager img { display: block; max-width: 100%; max-height: 300px; margin-top: 12px; border-radius: 6px; }
+.ecohash-manager a { color: #a78bfa; }
+.ecohash-dialog { width: min(680px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--border-color, #555); border-radius: 12px; background: var(--comfy-menu-bg, #292929); color: var(--input-text, #ddd); }
+.ecohash-dialog::backdrop { background: #0008; }
+.ecohash-dialog .eh-close { float: right; }

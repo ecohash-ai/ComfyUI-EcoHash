@@ -50,12 +50,54 @@ pip install -r requirements.txt
 
 Restart ComfyUI after installing.
 
+Dependencies must use **ComfyUI's Python**. For Windows Portable, run from the portable folder:
+
+```powershell
+.\python_embeded\python.exe -m pip install -r .\ComfyUI\custom_nodes\ComfyUI-EcoHash\requirements.txt
+```
+
+For Desktop or a virtual-environment install, use that installation's Python environment.
+After updating the plugin, restart the ComfyUI server and refresh the browser.
+
+## Connection manager
+
+Open the **EcoHash** cloud tab in the sidebar, click **Connections** (Chinese: **连接设置**) on any EcoHash
+node, or use **Extensions → EcoHash → EcoHash connections**.
+
+1. For public models (A), select `public`, enter your EcoHash key and **Save**.
+2. For dedicated images (B), configure `dedicated` or **Add connection**. Give it a stable
+   ID (for example `studio`), display name, API prefix URL, key and timeout.
+3. Click **Test connection**. This only queries `/models`; it does not generate an image.
+   A successful model-list response verifies that request. A server without `/models` is
+   shown as reachable with authentication/image support still unverified.
+4. Use **Refresh models** to discover models. Dedicated nodes also accept manual model IDs.
+5. Select a connection and model in your workflow, enter the prompt and run.
+
+**Generate test image** is a separate action requiring a model ID and explicit confirmation
+before making a real, potentially billable generation request. Its preview appears in the manager.
+
+Keys are saved only on the ComfyUI server in git-ignored `connections.json` (owner-readable
+and writable on POSIX). The settings API never returns saved keys. Leave a key field blank to
+keep its value. Per-field precedence: **nonempty environment variable → saved settings →
+config.ini → default**. Environment-managed fields are marked and locked. The public API URL
+and public timeout (180 seconds) are fixed; dedicated timeout defaults to 300 seconds.
+
+Each Dedicated image node has an optional `connection` selection; existing workflows default
+to `dedicated`. Multiple independent deployments can run in one workflow. Shared workflows store
+only connection IDs and model IDs. Recipients create the same ID locally or select another
+connection. Missing IDs produce a mapping error and never fall back to another deployment.
+The original six public nodes keep using `public`.
+
+The manager configures this ComfyUI server. Use it from the same trusted server environment
+where you manage your existing ComfyUI configuration.
+
 ## Set your API key
 
 This package deliberately has **no API-key input widget on any node**. Workflow JSON files are
 frequently shared, screenshotted, or committed to git, and a key typed into a node widget would
 be saved right there in plain text for anyone who opens the file. Instead, the key is read once
-at request time from outside the workflow graph, using one of:
+at request time from outside the workflow graph. The connection manager is the easiest option;
+server deployments can also use:
 
 1. **Environment variable** — set `ECOHASH_API_KEY` in the environment ComfyUI runs in, e.g.:
 
@@ -82,22 +124,29 @@ Get or manage your key in the [API keys guide](https://docs.ecohash.com/getting-
 
 | Node | Inputs | Outputs | Purpose |
 |---|---|---|---|
-| **EcoHash Image Generate** | `model` (live catalog, image models), `prompt` (string), `size` (`1024x1024`/`1024x768`/`768x1024`/`768x768`/`512x512`), `steps` (int, 0 = model default), `seed` (int, -1 = random) | `IMAGE` | Generate an image from a text prompt. |
+| **EcoHash Image Generate** | `model`, `prompt`, `size` (presets / `custom`), `steps` (0 = model default), `seed` (-1 = random), optional `width`/`height` | `IMAGE` | Generate an image from a text prompt. |
 | **EcoHash Image Edit** | `image` (`IMAGE`), `model` (catalog models that support image edit), `prompt` (string), `size` (`auto` + preset sizes; `auto` keeps the source image's dimensions) | `IMAGE` | Edit/transform an existing image with a text instruction. |
-| **EcoHash Dedicated Image Generate** | `model` (deployed model ID, string), `prompt`, `size`, `steps`, `seed` | `IMAGE` | Generate via your separately configured dedicated inference endpoint. |
-| **EcoHash Dedicated Image Edit** | `image`, `model` (deployed model ID, string), `prompt`, `size` | `IMAGE` | Edit via your dedicated endpoint, if it exposes the image-edit API. |
+| **EcoHash Dedicated Image Generate** | `model` (deployed ID), `prompt`, `size`, `steps`, `seed`, optional `width`/`height` and `connection` | `IMAGE` | Generate via the selected dedicated endpoint. |
+| **EcoHash Dedicated Image Edit** | `image`, `model` (deployed ID), `prompt`, `size`, optional `width`/`height` and `connection` | `IMAGE` | Edit via the selected dedicated endpoint, if supported. |
 | **EcoHash LLM** | `model` (catalog `llm`/`llm_vision` models), `mode` (`chat` / `prompt_enhance` / `translate_to_english` / `custom`), `text` (string), `system_prompt` (string, used only when `mode = custom`), `temperature` (float, 0–2), `max_tokens` (int) | `STRING` | Run a chat completion. `prompt_enhance` rewrites a rough idea into a detailed image-generation prompt; `translate_to_english` converts non-English text; useful chained before an Image Generate node. |
 | **EcoHash VLM Describe** | `image` (`IMAGE`), `model` (catalog `llm_vision` models), `prompt` (string, defaults to a detailed-description instruction), `max_tokens` (int) | `STRING` | Describe an input image in detail with a vision-language model — handy for turning an existing image into a prompt for regeneration or variation. |
 | **EcoHash TTS** | `model` (catalog `speech_tts` models), `text` (string), `voice` (string, e.g. `af_bella`), `speed` (float, 0.5–2.0) | `AUDIO` | Synthesize speech from text. |
 | **EcoHash STT** | `audio` (`AUDIO`), `model` (catalog `speech_stt` models), `language` (string, ISO-639-1 code, empty = auto-detect) | `STRING` | Transcribe speech audio to text. |
 
-The six public API nodes' `model` dropdowns are populated live from the EcoHash model catalog at graph-build time, so
-the exact list of available models will change as EcoHash adds or retires models — check
-the [model catalog](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.models) for the current lineup. If the catalog can't be reached, nodes fall back
-to a packaged snapshot so the graph still loads.
+Public model menus initially use the cache or packaged snapshot without blocking node loading
+on the network. The frontend refreshes separately; **Refresh models** updates menus and reports
+live/cache/fallback status. Capability hints show editing support, default steps, supported sizes
+and voices when supplied by the service. Unknown private-model capabilities remain unspecified.
+
+Image nodes offer landscape/portrait presets and `custom` dimensions (multiples of 16, 64–8192
+per side). Width/height appear only in custom mode; the model must support the requested size.
+LLM's system prompt appears only in custom mode. TTS lists voices when provided by the service;
+otherwise enter a model-specific voice ID. Switching away from Kokoro clears its `af_bella`
+default unless the new model supplies voice choices.
 
 ComfyUI caches node outputs — re-queueing an identical graph returns cached results without a new
 API call; change any input (e.g. seed) to force a fresh call.
+Node status shows waiting, completed, cached, interrupted or failed execution.
 
 ## Dedicated inference (B)
 
@@ -122,14 +171,24 @@ export ECOHASH_DEDICATED_API_KEY="YOUR_DEDICATED_KEY_HERE"
 export ECOHASH_DEDICATED_TIMEOUT="300"
 ```
 
-Nonempty environment values override the corresponding INI values. Timeout is in seconds
+Nonempty environment values override saved UI settings, which override INI values. Timeout is in seconds
 and defaults to 300. `base_url` must include the service's actual API prefix: `/v1` is **not**
 added automatically. Trailing slashes are removed; a prefix such as `/deployments/my-model/v1`
 is preserved. The dedicated key is independent of `ECOHASH_API_KEY`; there is no fallback to
 the public key. Neither the endpoint nor its key is stored in node widgets or workflow JSON.
 
+Additional connections can also be configured as INI sections:
+
+```ini
+[connection:studio]
+name = Studio image model
+base_url = https://ANOTHER_HOST/v1
+api_key = YOUR_DEDICATED_KEY_HERE
+timeout = 300
+```
+
 In ComfyUI, add **EcoHash Dedicated Image Generate**, enter the exact model ID served by your
-deployment, then connect its output to **Preview Image** or **Save Image**. To edit, connect
+deployment, select its `connection`, then connect its output to **Preview Image** or **Save Image**. To edit, connect
 an `IMAGE` to **EcoHash Dedicated Image Edit** and enter a model ID that supports editing.
 An example workflow is in [`example_workflows/dedicated_text_to_image.json`](example_workflows/dedicated_text_to_image.json).
 Dedicated nodes invalidate their cached result when their endpoint, key or timeout changes.
@@ -162,6 +221,8 @@ with the ComfyUI dependencies available (this makes real, billable API calls):
 python scripts/smoke_dedicated.py --model YOUR_DEPLOYED_MODEL_ID
 # If the deployment also supports editing:
 python scripts/smoke_dedicated.py --model YOUR_DEPLOYED_MODEL_ID --edit-model YOUR_EDIT_MODEL_ID
+# Use a named connection:
+python scripts/smoke_dedicated.py --connection studio --model YOUR_DEPLOYED_MODEL_ID
 ```
 
 The script saves generated/edited PNGs in a temporary directory and prints their paths and
@@ -172,11 +233,10 @@ validate browser interaction or workflow execution.
 
 Ready-to-load example workflows (text-to-image, prompt-enhance-then-generate,
 describe-and-regenerate, and TTS voiceover) live in [`example_workflows/`](example_workflows/).
-The node chains they use were exercised live against the real EcoHash API — see
-[`tests/SMOKE_RESULTS.md`](tests/SMOKE_RESULTS.md) — and the workflow JSON files themselves were
-validated against a live ComfyUI instance's node schema; see that folder's README for exactly
-what was and wasn't verified (a literal browser load/click-Queue pass was not performed, since
-this was done headlessly).
+Open **Workflow → Browse Templates** and find this plugin, or drag a JSON file into the canvas.
+Node help is available in each node's information panel. The original public API smoke-test
+record is in [`tests/SMOKE_RESULTS.md`](tests/SMOKE_RESULTS.md); dedicated verification is
+recorded separately in [`tests/DEDICATED_RESULTS.md`](tests/DEDICATED_RESULTS.md).
 
 ## Pricing
 
@@ -189,6 +249,14 @@ per-model pricing at **[the billing docs](https://docs.ecohash.com/billing/plans
   (this repo)
 - Account or billing questions: the EcoLink console support chat —
   [EcoHash support](https://docs.ecohash.com/troubleshooting/support?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.support)
+
+## Local verification
+
+Using a ComfyUI Python environment (including PyTorch, Pillow, NumPy and aiohttp), install
+pytest and run `python -m pytest -q`. Frontend helper checks use `node --test tests/test_ui.mjs`;
+no frontend build step is required. The tests isolate credentials and use temporary local HTTP
+services. See [`tests/DEDICATED_RESULTS.md`](tests/DEDICATED_RESULTS.md) for the running-ComfyUI
+verification and the remaining checks for a real dedicated deployment.
 
 ---
 
@@ -207,16 +275,24 @@ ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话�
 **安装**：在 ComfyUI-Manager 中搜索 "EcoHash" 安装，或将本仓库 `git clone` 到
 `ComfyUI/custom_nodes/` 目录下，然后 `pip install -r requirements.txt`。
 
-**配置密钥**：本插件的节点上**没有**任何 API Key 输入框——因为工作流 JSON 经常被分享、截图或提交到
-仓库，写在节点里的密钥会随之泄露。请改用环境变量 `ECOHASH_API_KEY`，或将 `config.ini.example`
-复制为 `config.ini` 并填入密钥。**切勿将密钥粘贴到节点、工作流文件或截图中。**
+**界面配置**：打开侧栏的 **EcoHash** 云图标，或节点上的 **Connections / 连接设置**。
+公共模型选择 `public` 并保存密钥；专属模型配置 `dedicated` 或添加具名连接。先保存，再测试连接、
+刷新模型。连接检测不生成图片；测试出图需要单独勾选确认，将发送实际生成请求。
+密钥只保存在服务端 `connections.json`，不会写进工作流，读取配置接口也不会返回密钥。
+环境变量和 `config.ini` 仍可使用，优先级为：环境变量 → 界面设置 → `config.ini`。
 
 **专属推理（B）**：在 `config.ini` 添加 `[dedicated]`，配置 `base_url`、`api_key` 和可选的
 `timeout`（秒，默认 300）；也可使用 `ECOHASH_DEDICATED_BASE_URL`、`ECOHASH_DEDICATED_API_KEY`
 和 `ECOHASH_DEDICATED_TIMEOUT` 环境变量。`base_url` 要包含服务实际的 API 前缀，插件不会自动添加
 `/v1`。添加 **EcoHash Dedicated Image Generate / Edit** 节点，直接填写部署模型 ID 即可调用，
-无需模型出现在公共目录中。A、B 使用独立密钥，可以在同一工作流混用。当前支持同步图像生成/编辑
+无需模型出现在公共目录中。专属节点的 `connection` 可分别选择不同部署，也可通过
+`[connection:连接ID]` 配置多个端点。分享工作流时接收方配置同名连接，或在节点中重新选择。
+A、B 使用独立密钥，可以在同一工作流混用。当前支持同步图像生成/编辑
 接口和 base64 / 图片 URL 返回；异步任务或其他协议需要另行适配，详见上方 Dedicated inference。
+
+**参数和帮助**：`size=custom` 时显示宽高；LLM 的 `custom` 模式才显示系统提示词。
+音色按模型元数据显示可选项，未提供列表时支持手填。示例可从工作流模板浏览器加载；节点的信息面板
+提供使用说明。Windows Portable 安装依赖时请使用内嵌 Python，命令见上方 Install。
 
 **价格**：按量计费，详见[计费文档](https://docs.ecohash.com/billing/plans?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.pricing-zh)。
 

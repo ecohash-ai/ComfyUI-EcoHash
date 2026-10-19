@@ -33,26 +33,26 @@ def test_get_catalog_falls_back_to_snapshot(monkeypatch):
 
 def test_model_ids_filters_by_category(monkeypatch):
     _fresh()
-    monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: FAKE)
+    monkeypatch.setattr(catalog, "schema_catalog", lambda: FAKE)
     assert catalog.model_ids("image") == ["qwen-image", "flux2-klein"]
     assert catalog.model_ids("llm", "image") == ["qwen-image", "flux2-klein", "glm-5.2"]
 
 
 def test_model_ids_never_empty(monkeypatch):
-    monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: [])
+    monkeypatch.setattr(catalog, "schema_catalog", lambda: [])
     assert catalog.model_ids("video") == ["(catalog unavailable)"]
 
 
 def test_model_ids_skips_entries_missing_model_id(monkeypatch):
     _fresh()
-    monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: FAKE)
+    monkeypatch.setattr(catalog, "schema_catalog", lambda: FAKE)
     # FAKE includes a malformed {"category": "image"} entry with no "model_id" key;
     # model_ids() must skip it silently rather than raising KeyError.
     assert catalog.model_ids("image") == ["qwen-image", "flux2-klein"]
 
 
 def test_models_where(monkeypatch):
-    monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: FAKE)
+    monkeypatch.setattr(catalog, "schema_catalog", lambda: FAKE)
     assert [m["model_id"] for m in catalog.models_where(supports_image_edit=True)] == ["flux2-klein"]
 
 
@@ -100,5 +100,5 @@ def test_snapshot_read_failure_returns_empty(monkeypatch):
 
     assert data == []
     # Verify model_ids converts empty list to placeholder
-    monkeypatch.setattr(catalog, "get_catalog", lambda force_refresh=False: [])
+    monkeypatch.setattr(catalog, "schema_catalog", lambda: [])
     assert catalog.model_ids("any_category") == ["(catalog unavailable)"]

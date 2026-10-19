@@ -22,9 +22,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", required=True, help="Exact deployed generation model ID")
     parser.add_argument("--edit-model", help="Also test image editing with this deployed model ID")
+    parser.add_argument("--connection", default="dedicated", help="Saved connection ID (default: dedicated)")
+    parser.add_argument("--edit-connection", help="Connection ID for editing (default: same as generation)")
     parser.add_argument("--prompt", default="a small red apple on a plain white background, product photo")
     parser.add_argument("--edit-prompt", default="make the apple bright green")
     parser.add_argument("--size", choices=SIZES, default="512x512")
+    parser.add_argument("--width", type=int, default=1024, help="Width when size=custom")
+    parser.add_argument("--height", type=int, default=1024, help="Height when size=custom")
     parser.add_argument("--steps", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", type=Path)
@@ -37,12 +41,13 @@ def main(argv=None):
     try:
         (image,) = EcoHashDedicatedImageGenerate().generate(
             args.model, args.prompt, args.size, args.steps, args.seed,
+            width=args.width, height=args.height, connection=args.connection,
         )
         path = output_dir / "generated.png"
         path.write_bytes(conversions.image_tensor_to_png_bytes(image))
         print(f"PASS generation: {image.shape[2]}x{image.shape[1]} -> {path}")
         if args.edit_model:
-            (edited,) = EcoHashDedicatedImageEdit().edit(image, args.edit_model, args.edit_prompt, "auto")
+            (edited,) = EcoHashDedicatedImageEdit().edit(image, args.edit_model, args.edit_prompt, "auto", connection=args.edit_connection or args.connection)
             path = output_dir / "edited.png"
             path.write_bytes(conversions.image_tensor_to_png_bytes(edited))
             print(f"PASS editing: {edited.shape[2]}x{edited.shape[1]} -> {path}")

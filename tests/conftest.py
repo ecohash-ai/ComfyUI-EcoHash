@@ -1,6 +1,6 @@
 import pytest
 
-from ecohash import client
+from ecohash import client, connections, discovery
 
 
 @pytest.fixture(autouse=True)
@@ -12,3 +12,5 @@ def isolate_credentials(monkeypatch, tmp_path):
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(client, "CONFIG_PATH", tmp_path / "config.ini")
+    monkeypatch.setattr(connections, "CONNECTIONS_PATH", tmp_path / "connections.json")
+    discovery._CACHE.clear()

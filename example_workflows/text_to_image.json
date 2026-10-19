@@ -36,8 +36,21 @@
     "a cinematic photo of a lighthouse at sunset, dramatic clouds, golden hour lighting",
     "1024x1024",
     0,
-    -1
-   ]
+    -1,
+    "fixed",
+    1024,
+    1024
+   ],
+   "widgets_values_named": {
+    "model": "z-image-turbo",
+    "prompt": "a cinematic photo of a lighthouse at sunset, dramatic clouds, golden hour lighting",
+    "size": "1024x1024",
+    "steps": 0,
+    "seed": -1,
+    "width": 1024,
+    "height": 1024,
+    "control_after_generate": "fixed"
+   }
   },
   {
    "id": 2,

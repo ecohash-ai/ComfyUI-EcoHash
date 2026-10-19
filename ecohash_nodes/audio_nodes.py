@@ -20,6 +20,7 @@ class EcoHashTTS:
     CATEGORY = "EcoHash"
     FUNCTION = "speak"
     RETURN_TYPES = ("AUDIO",)
+    DESCRIPTION = "Generate speech through the public EcoHash API. Voice IDs are model-specific; discovery shows available voices when supplied by the service."
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -34,6 +35,8 @@ class EcoHashTTS:
         }
 
     def speak(self, model, text, voice, speed):
+        if not voice.strip():
+            raise client.EcoHashError("Choose or enter a voice ID supported by the selected TTS model. Use the node's model information for available voices.")
         wav = client.request_bytes("POST", "/audio/speech", json_body={
             "model": model, "input": text, "voice": voice,
             "response_format": "wav", "speed": speed,
@@ -45,6 +48,7 @@ class EcoHashSTT:
     CATEGORY = "EcoHash"
     FUNCTION = "transcribe"
     RETURN_TYPES = ("STRING",)
+    DESCRIPTION = "Transcribe one audio clip through the public EcoHash API. Leave language blank for automatic detection."
 
     @classmethod
     def INPUT_TYPES(cls):

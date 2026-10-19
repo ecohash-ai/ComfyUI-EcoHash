@@ -9,3 +9,14 @@ api_key = eco_YOUR_KEY_HERE
 ; base_url = https://YOUR_DEDICATED_HOST/v1
 ; api_key = YOUR_DEDICATED_KEY_HERE
 ; timeout = 300
+
+; Optional named connections, selectable in Dedicated image nodes:
+; [connection:studio]
+; name = Studio image model
+; base_url = https://YOUR_OTHER_HOST/v1
+; api_key = YOUR_DEDICATED_KEY_HERE
+; timeout = 300
+
+; The EcoHash sidebar also manages connections without editing this file.
+; Precedence per field: environment variable > connections.json > config.ini.
+; connections.json is git-ignored and contains credentials; do not share it.

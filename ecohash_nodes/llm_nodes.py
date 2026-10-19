@@ -50,6 +50,7 @@ class EcoHashLLM:
     CATEGORY = "EcoHash"
     FUNCTION = "run"
     RETURN_TYPES = ("STRING",)
+    DESCRIPTION = "Public EcoHash chat, prompt enhancement and translation. system_prompt is used in custom mode. Connect STRING outputs to downstream prompts."
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -80,6 +81,7 @@ class EcoHashVLMDescribe:
     CATEGORY = "EcoHash"
     FUNCTION = "describe"
     RETURN_TYPES = ("STRING",)
+    DESCRIPTION = "Describe one image using a public EcoHash vision model. Connect the text to an image generator's prompt."
 
     @classmethod
     def INPUT_TYPES(cls):

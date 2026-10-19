@@ -46,4 +46,23 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EcoHashSTT": "EcoHash STT",
 }
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+WEB_DIRECTORY = "./web"
+
+
+def _register_settings_routes():
+    try:
+        from server import PromptServer
+    except ImportError:
+        return
+    instance = getattr(PromptServer, "instance", None)
+    if instance is not None:
+        try:
+            from .ecohash.api_routes import register_routes
+        except ImportError:
+            from ecohash.api_routes import register_routes
+        register_routes(instance.routes)
+
+
+_register_settings_routes()
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
