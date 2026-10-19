@@ -1,8 +1,11 @@
 """HTTP layer for the EcoHash API: key loading, auth, error mapping."""
 
 import configparser
+from dataclasses import dataclass, field
+import math
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import requests
 
@@ -32,25 +35,113 @@ class EcoHashAuthError(EcoHashError):
     pass
 
 
+@dataclass(frozen=True)
+class DedicatedEndpoint:
+    base_url: str
+    api_key: str = field(repr=False)
+    timeout: float = 300
+
+
+def _read_config():
+    # Interpolation would interpret '%' in credentials as config syntax.
+    parser = configparser.ConfigParser(interpolation=None)
+    try:
+        with CONFIG_PATH.open() as config_file:
+            parser.read_file(config_file)
+    except FileNotFoundError:
+        pass
+    except (configparser.Error, OSError, UnicodeError):
+        # Do not include the parser error: it may quote a line containing a key.
+        raise EcoHashError(f"Cannot read config file at {CONFIG_PATH}. Check its INI syntax and permissions.") from None
+    return parser
+
+
+def _validate_http_url(url, *, base_url=False):
+    try:
+        if not isinstance(url, str):
+            raise ValueError
+        parsed = urlsplit(url)
+        valid = (
+            parsed.scheme in ("http", "https") and parsed.hostname
+            and not parsed.username and not parsed.password
+            and not parsed.fragment and not any(c.isspace() for c in url)
+        )
+        parsed.port  # validate the port if one is present
+        if base_url and parsed.query:
+            valid = False
+    except ValueError:
+        valid = False
+    if not valid:
+        kind = "base_url" if base_url else "image URL"
+        raise EcoHashError(
+            f"Invalid {kind}: use an absolute http:// or https:// URL without embedded credentials or fragments."
+        )
+    return url
+
+
+def load_dedicated_endpoint() -> DedicatedEndpoint:
+    """Load a separate destination and credential; never fall back to the public key."""
+    # Read lazily so changing settings does not require reloading the plugin.
+    def setting(name, default=""):
+        value = os.environ.get(f"ECOHASH_DEDICATED_{name.upper()}", "").strip()
+        if value:
+            return value
+        return config.get("dedicated", name, fallback=default).strip()
+
+    config = _read_config()
+    base_url = setting("base_url").rstrip("/")
+    if not base_url:
+        raise EcoHashError(
+            "Dedicated inference URL not configured. Set ECOHASH_DEDICATED_BASE_URL or "
+            "[dedicated] base_url in config.ini, including the API prefix (for example /v1)."
+        )
+    _validate_http_url(base_url, base_url=True)
+    key = setting("api_key")
+    if not key or key == "YOUR_DEDICATED_KEY_HERE":
+        raise EcoHashAuthError(
+            "Dedicated inference API key not found. Set ECOHASH_DEDICATED_API_KEY or "
+            "[dedicated] api_key in config.ini. The public ECOHASH_API_KEY is not used here."
+        )
+    try:
+        timeout = float(setting("timeout", "300"))
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError
+    except ValueError:
+        raise EcoHashError("Dedicated inference timeout must be a positive number of seconds.") from None
+    return DedicatedEndpoint(base_url, key, timeout)
+
+
 def load_api_key() -> str:
     key = os.environ.get("ECOHASH_API_KEY", "").strip()
     if key:
         return key
     if CONFIG_PATH.exists():
-        parser = configparser.ConfigParser()
         try:
-            parser.read(CONFIG_PATH)
-        except configparser.Error as exc:
-            raise EcoHashAuthError(
-                f"Malformed config file at {CONFIG_PATH}: {exc}\n\n{_KEY_HELP}"
-            ) from exc
+            parser = _read_config()
+        except EcoHashError as exc:
+            raise EcoHashAuthError(f"{exc}\n\n{_KEY_HELP}") from None
         key = parser.get("ecohash", "api_key", fallback="").strip()
         if key and key != "eco_YOUR_KEY_HERE":
             return key
     raise EcoHashAuthError(_KEY_HELP)
 
 
-def _raise_for_status(resp) -> None:
+def _raise_for_status(resp, endpoint=None) -> None:
+    if endpoint is not None:
+        if resp.status_code < 300:
+            return
+        messages = {
+            401: "Dedicated inference authentication failed (401). Check ECOHASH_DEDICATED_API_KEY or [dedicated] api_key.",
+            403: "Dedicated inference access denied (403). Check the dedicated key's access to this deployment.",
+            404: "Dedicated inference endpoint or model not found (404). Check base_url (including its API prefix) and the deployed model ID.",
+            429: "Dedicated inference rate limited (429). Wait a moment and retry.",
+        }
+        message = messages.get(resp.status_code, f"Dedicated inference API error {resp.status_code}.")
+        if 300 <= resp.status_code < 400:
+            message = "Dedicated inference redirected the request. Configure the final API base_url directly."
+        if resp.status_code in (401, 403):
+            raise EcoHashAuthError(message)
+        raise EcoHashError(message)
     if resp.status_code < 400:
         return
     message = _STATUS_MESSAGES.get(resp.status_code)
@@ -61,34 +152,66 @@ def _raise_for_status(resp) -> None:
     raise EcoHashError(message)
 
 
-def _request(method: str, path: str, *, json_body=None, data=None, files=None, timeout=180):
-    headers = {"Authorization": f"Bearer {load_api_key()}"}
+def _request(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None):
+    key = endpoint.api_key if endpoint is not None else load_api_key()
+    base_url = endpoint.base_url if endpoint is not None else BASE_URL
+    if timeout is None:
+        timeout = endpoint.timeout if endpoint is not None else 180
+    headers = {"Authorization": f"Bearer {key}"}
     try:
         resp = requests.request(
-            method, BASE_URL + path,
+            method, base_url + path,
             json=json_body, data=data, files=files, headers=headers, timeout=timeout,
+            **({"allow_redirects": False} if endpoint is not None else {}),
         )
     except requests.RequestException as exc:
+        if endpoint is not None:
+            raise EcoHashError(
+                f"Cannot reach dedicated inference API ({type(exc).__name__}). Check base_url, connectivity and timeout."
+            ) from None
         raise EcoHashError(f"Cannot reach EcoHash API: {exc}") from exc
-    _raise_for_status(resp)
+    _raise_for_status(resp, endpoint)
     return resp
 
 
-def request_json(method: str, path: str, *, json_body=None, data=None, files=None, timeout=180) -> dict:
-    resp = _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout)
+def request_json(method: str, path: str, *, json_body=None, data=None, files=None, timeout=None, endpoint=None) -> dict:
+    resp = _request(method, path, json_body=json_body, data=data, files=files, timeout=timeout, endpoint=endpoint)
+    if resp.status_code == 202:
+        raise EcoHashError(
+            "Inference API returned an asynchronous job (HTTP 202). These image nodes require a synchronous "
+            "image response; this endpoint needs a task-polling adapter."
+        )
     try:
-        return resp.json()
+        result = resp.json()
     except ValueError as exc:
         # A 2xx with a body that isn't JSON does happen (observed once: an empty body on
         # /chat/completions, which succeeded on retry). Decoding outside this guard would
         # surface a bare requests.exceptions.JSONDecodeError traceback in ComfyUI instead
         # of an actionable message.
+        if endpoint is not None:
+            raise EcoHashError(
+                f"Dedicated inference returned a {resp.status_code} response that is not valid JSON. Check the API prefix and response format."
+            ) from None
         raise EcoHashError(
             f"EcoHash returned a {resp.status_code} response that is not valid JSON "
             f"({len(resp.content)} bytes). This is usually transient — retry. "
             f"Body starts: {resp.text[:200]!r}"
         ) from exc
+    if not isinstance(result, dict):
+        raise EcoHashError("Inference API must return a JSON object. Check the endpoint's response format.")
+    return result
 
 
 def request_bytes(method: str, path: str, *, json_body, timeout=180) -> bytes:
     return _request(method, path, json_body=json_body, timeout=timeout).content
+
+
+def download_image(url: str, *, timeout=180) -> bytes:
+    """Fetch an API result URL without forwarding either inference API credential."""
+    _validate_http_url(url)
+    try:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise EcoHashError(f"Cannot download inference image ({type(exc).__name__}).") from None
+    return resp.content

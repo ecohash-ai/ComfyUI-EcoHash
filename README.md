@@ -20,7 +20,7 @@
 
 [EcoHash](https://ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.intro) runs an NVIDIA RTX PRO 6000 GPU cloud and, on top of it,
 an OpenAI-compatible inference API for open models: image generation and editing, LLM chat,
-vision-language description, text-to-speech, and speech-to-text. This package adds six ComfyUI
+vision-language description, text-to-speech, and speech-to-text. This package adds eight ComfyUI
 nodes that call that API directly from your workflows — no local GPU or model download required
 for these nodes.
 
@@ -84,18 +84,89 @@ Get or manage your key in the [API keys guide](https://docs.ecohash.com/getting-
 |---|---|---|---|
 | **EcoHash Image Generate** | `model` (live catalog, image models), `prompt` (string), `size` (`1024x1024`/`1024x768`/`768x1024`/`768x768`/`512x512`), `steps` (int, 0 = model default), `seed` (int, -1 = random) | `IMAGE` | Generate an image from a text prompt. |
 | **EcoHash Image Edit** | `image` (`IMAGE`), `model` (catalog models that support image edit), `prompt` (string), `size` (`auto` + preset sizes; `auto` keeps the source image's dimensions) | `IMAGE` | Edit/transform an existing image with a text instruction. |
+| **EcoHash Dedicated Image Generate** | `model` (deployed model ID, string), `prompt`, `size`, `steps`, `seed` | `IMAGE` | Generate via your separately configured dedicated inference endpoint. |
+| **EcoHash Dedicated Image Edit** | `image`, `model` (deployed model ID, string), `prompt`, `size` | `IMAGE` | Edit via your dedicated endpoint, if it exposes the image-edit API. |
 | **EcoHash LLM** | `model` (catalog `llm`/`llm_vision` models), `mode` (`chat` / `prompt_enhance` / `translate_to_english` / `custom`), `text` (string), `system_prompt` (string, used only when `mode = custom`), `temperature` (float, 0–2), `max_tokens` (int) | `STRING` | Run a chat completion. `prompt_enhance` rewrites a rough idea into a detailed image-generation prompt; `translate_to_english` converts non-English text; useful chained before an Image Generate node. |
 | **EcoHash VLM Describe** | `image` (`IMAGE`), `model` (catalog `llm_vision` models), `prompt` (string, defaults to a detailed-description instruction), `max_tokens` (int) | `STRING` | Describe an input image in detail with a vision-language model — handy for turning an existing image into a prompt for regeneration or variation. |
 | **EcoHash TTS** | `model` (catalog `speech_tts` models), `text` (string), `voice` (string, e.g. `af_bella`), `speed` (float, 0.5–2.0) | `AUDIO` | Synthesize speech from text. |
 | **EcoHash STT** | `audio` (`AUDIO`), `model` (catalog `speech_stt` models), `language` (string, ISO-639-1 code, empty = auto-detect) | `STRING` | Transcribe speech audio to text. |
 
-All `model` dropdowns are populated live from the EcoHash model catalog at graph-build time, so
+The six public API nodes' `model` dropdowns are populated live from the EcoHash model catalog at graph-build time, so
 the exact list of available models will change as EcoHash adds or retires models — check
 the [model catalog](https://docs.ecohash.com?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.models) for the current lineup. If the catalog can't be reached, nodes fall back
 to a packaged snapshot so the graph still loads.
 
 ComfyUI caches node outputs — re-queueing an identical graph returns cached results without a new
 API call; change any input (e.g. seed) to force a fresh call.
+
+## Dedicated inference (B)
+
+The two **EcoHash/Dedicated** nodes call a separately deployed image model. The original six
+nodes continue to use the public EcoHash API (A), so both can be used in the same workflow.
+Dedicated nodes accept a free-text model ID and do not consult the public model catalog.
+
+Add the following to your local, git-ignored `config.ini` (also see `config.ini.example`):
+
+```ini
+[dedicated]
+base_url = https://YOUR_DEDICATED_HOST/v1
+api_key = YOUR_DEDICATED_KEY_HERE
+timeout = 300
+```
+
+Alternatively, set these variables in the environment of the **ComfyUI server process**:
+
+```bash
+export ECOHASH_DEDICATED_BASE_URL="https://YOUR_DEDICATED_HOST/v1"
+export ECOHASH_DEDICATED_API_KEY="YOUR_DEDICATED_KEY_HERE"
+export ECOHASH_DEDICATED_TIMEOUT="300"
+```
+
+Nonempty environment values override the corresponding INI values. Timeout is in seconds
+and defaults to 300. `base_url` must include the service's actual API prefix: `/v1` is **not**
+added automatically. Trailing slashes are removed; a prefix such as `/deployments/my-model/v1`
+is preserved. The dedicated key is independent of `ECOHASH_API_KEY`; there is no fallback to
+the public key. Neither the endpoint nor its key is stored in node widgets or workflow JSON.
+
+In ComfyUI, add **EcoHash Dedicated Image Generate**, enter the exact model ID served by your
+deployment, then connect its output to **Preview Image** or **Save Image**. To edit, connect
+an `IMAGE` to **EcoHash Dedicated Image Edit** and enter a model ID that supports editing.
+An example workflow is in [`example_workflows/dedicated_text_to_image.json`](example_workflows/dedicated_text_to_image.json).
+Dedicated nodes invalidate their cached result when their endpoint, key or timeout changes.
+
+The current protocol is a **synchronous, OpenAI-compatible image API**:
+
+- Generation: `POST {base_url}/images/generations`, JSON with `model`, `prompt`, `size`,
+  `response_format=b64_json`, and optional `steps` / `seed`.
+- Editing: `POST {base_url}/images/edits`, multipart form with `model`, `prompt`, `size` and
+  an `image` PNG file. `size=auto` sends the source dimensions explicitly.
+- Authentication: `Authorization: Bearer <dedicated key>`.
+- Result: `{"data": [{"b64_json": "..."}]}` or `{"data": [{"url": "https://..."}]}`.
+  Result URLs must be downloadable without the inference key; that key is never forwarded
+  when fetching an image URL. Each call produces one `IMAGE` from the first result.
+
+An HTTP 202 job response requires a task-polling adapter and is reported as unsupported.
+Other response schemas, authentication schemes, and deployment-routing headers also require
+an adapter. API requests do not follow redirects; configure the final API base URL directly.
+LoRA, ControlNet and other deployment-specific parameters are not exposed by these nodes yet.
+
+Before testing a real service, verify it implements this protocol. The automated tests cover
+configuration, credential isolation and real loopback HTTP generation/editing against a test
+service; they do not establish compatibility with any particular dedicated deployment.
+See [`tests/DEDICATED_RESULTS.md`](tests/DEDICATED_RESULTS.md) for the verification record.
+
+After configuring your real endpoint, run the node-level smoke test in a Python environment
+with the ComfyUI dependencies available (this makes real, billable API calls):
+
+```bash
+python scripts/smoke_dedicated.py --model YOUR_DEPLOYED_MODEL_ID
+# If the deployment also supports editing:
+python scripts/smoke_dedicated.py --model YOUR_DEPLOYED_MODEL_ID --edit-model YOUR_EDIT_MODEL_ID
+```
+
+The script saves generated/edited PNGs in a temporary directory and prints their paths and
+dimensions. It exercises the node implementations directly; it does not start ComfyUI or
+validate browser interaction or workflow execution.
 
 ## Example workflows
 
@@ -124,8 +195,8 @@ per-model pricing at **[the billing docs](https://docs.ecohash.com/billing/plans
 ## 中文说明
 
 EcoHash 提供 NVIDIA RTX PRO 6000 GPU 云，以及构建其上的 OpenAI 兼容推理 API。ComfyUI-EcoHash 为
-ComfyUI 提供 6 个节点，通过该 API 调用图像生成/编辑、LLM 对话、图像描述（VLM）、文本转语音（TTS）
-和语音转文本（STT），无需本地 GPU 或下载模型。
+ComfyUI 提供 6 个公共 API 节点，调用图像生成/编辑、LLM 对话、图像描述（VLM）、文本转语音（TTS）
+和语音转文本（STT），以及 2 个专属推理图像节点。这些节点无需本地 GPU 或下载模型。
 
 **GPU 云**：同一个账号也可按小时租用 [RTX PRO 6000 Blackwell 实例](https://ecohash.com/gpu/rtx-pro-6000?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-zh)（96 GB 显存），
 用于运行带本地模型的完整 ComfyUI 环境，详见 [GPU 云文档](https://docs.ecohash.com/gpu-compute/overview?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.gpu-docs-zh)。
@@ -139,6 +210,13 @@ ComfyUI 提供 6 个节点，通过该 API 调用图像生成/编辑、LLM 对�
 **配置密钥**：本插件的节点上**没有**任何 API Key 输入框——因为工作流 JSON 经常被分享、截图或提交到
 仓库，写在节点里的密钥会随之泄露。请改用环境变量 `ECOHASH_API_KEY`，或将 `config.ini.example`
 复制为 `config.ini` 并填入密钥。**切勿将密钥粘贴到节点、工作流文件或截图中。**
+
+**专属推理（B）**：在 `config.ini` 添加 `[dedicated]`，配置 `base_url`、`api_key` 和可选的
+`timeout`（秒，默认 300）；也可使用 `ECOHASH_DEDICATED_BASE_URL`、`ECOHASH_DEDICATED_API_KEY`
+和 `ECOHASH_DEDICATED_TIMEOUT` 环境变量。`base_url` 要包含服务实际的 API 前缀，插件不会自动添加
+`/v1`。添加 **EcoHash Dedicated Image Generate / Edit** 节点，直接填写部署模型 ID 即可调用，
+无需模型出现在公共目录中。A、B 使用独立密钥，可以在同一工作流混用。当前支持同步图像生成/编辑
+接口和 base64 / 图片 URL 返回；异步任务或其他协议需要另行适配，详见上方 Dedicated inference。
 
 **价格**：按量计费，详见[计费文档](https://docs.ecohash.com/billing/plans?utm_source=github&utm_medium=referral&utm_campaign=api-comfyui-always-on&utm_content=readme.pricing-zh)。
 

@@ -10,7 +10,11 @@ from PIL import Image
 
 
 def b64_to_image_tensor(b64: str) -> torch.Tensor:
-    img = Image.open(io.BytesIO(base64.b64decode(b64))).convert("RGB")
+    return image_bytes_to_tensor(base64.b64decode(b64))
+
+
+def image_bytes_to_tensor(image_bytes: bytes) -> torch.Tensor:
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     arr = np.asarray(img).astype(np.float32) / 255.0
     return torch.from_numpy(arr)[None,]
 

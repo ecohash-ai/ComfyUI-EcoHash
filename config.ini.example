@@ -1,3 +1,11 @@
 [ecohash]
 ; Copy this file to config.ini and paste your key from https://docs.ecohash.com/getting-started/api-keys
 api_key = eco_YOUR_KEY_HERE
+
+; Optional: dedicated inference (B). These settings apply only to Dedicated nodes.
+; Include the API prefix exactly as your service exposes it; no /v1 is added.
+; Do not put keys in node widgets or shared workflow JSON files.
+; [dedicated]
+; base_url = https://YOUR_DEDICATED_HOST/v1
+; api_key = YOUR_DEDICATED_KEY_HERE
+; timeout = 300

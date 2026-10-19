@@ -4,11 +4,16 @@ Ready-to-load ComfyUI workflow JSON files (UI format — drag into the ComfyUI c
 Workflow → Open) demonstrating each EcoHash node:
 
 - `text_to_image.json` — `EcoHashImageGenerate` → `PreviewImage`
+- `dedicated_text_to_image.json` — `EcoHashDedicatedImageGenerate` → `PreviewImage`.
+  Configure `[dedicated]` or `ECOHASH_DEDICATED_*` on the ComfyUI server first and replace
+  `YOUR_DEPLOYED_MODEL_ID` with your deployment's model ID. No endpoint or credentials are
+  embedded in this workflow. This new example has been checked against the plugin's node
+  schema locally; it has not yet been run through a live ComfyUI server or a real deployment.
 - `enhance_then_generate.json` — `EcoHashLLM` (`prompt_enhance` mode) → `EcoHashImageGenerate` → `PreviewImage`
 - `describe_and_regenerate.json` — `LoadImage` → `EcoHashVLMDescribe` → `EcoHashImageGenerate` → `PreviewImage`
 - `tts_voiceover.json` — `EcoHashTTS` → `PreviewAudio`
 
-These were hand-authored against the exact current ComfyUI workflow schema (node
+The original four examples were hand-authored against the exact current ComfyUI workflow schema (node
 `pos`/`size`/`inputs`/`outputs`/`properties`/`widgets_values`, and the `links` array format),
 derived by inspecting real workflows shipped in the `comfyui-workflow-templates` package and
 cross-checked node-by-node against a live ComfyUI instance's `/object_info` (input order, which
